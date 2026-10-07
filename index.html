@@ -1,0 +1,1417 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body>
+<title>Process That Runs Itself</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Mono:wght@500;600&family=Caveat:wght@600&display=swap" />
+<style>
+  /* Every colour below is checked against its own background at 4.5:1 or better
+     for body text and 3:1 for large text. Nothing renders under 12px. */
+  :root {
+    --paper:#FAFAF8; --card:#FFFFFF; --sunk:#F1F2EF; --line:#E4E5E0; --hair:#EDEEEA;
+    --ink:#14181B;      /* 15.4:1 on paper */
+    --body:#3C444A;     /*  9.0:1 */
+    --muted:#5C646B;    /*  6.0:1 */
+    --green:#146A4E; --green-soft:#E4F1EB; --green-bar:#1E8C68;
+    --violet:#574AC0; --violet-soft:#EBE9FA; --violet-bar:#6E60DB;
+    --amber:#8A5510;  --amber-soft:#FBEFDD; --amber-bar:#D2901F;
+    --blue:#2B5EA8;   --blue-soft:#E6EEF9; --blue-bar:#3E7BCB;
+    --accent:var(--green); --accent-soft:var(--green-soft); --accent-bar:var(--green-bar);
+    --sans:"Plus Jakarta Sans","Helvetica Neue",Arial,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+    --hand:"Caveat","Bradley Hand",cursive;
+    --lift:0 1px 2px rgba(20,24,27,.05), 0 10px 26px -14px rgba(20,24,27,.22);
+    --lift-lg:0 2px 6px rgba(20,24,27,.06), 0 28px 60px -28px rgba(20,24,27,.3);
+    --r:16px;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --paper:#101314; --card:#191D1F; --sunk:#151819; --line:#282D2F; --hair:#212527;
+    --ink:#EDF0F1; --body:#C4CBCF; --muted:#9BA4A9;
+    --green:#67C2A0; --green-soft:#16302A; --green-bar:#3FA684;
+    --violet:#AEA2F7; --violet-soft:#211F3A; --violet-bar:#8578E6;
+    --amber:#E2B36A; --amber-soft:#302616; --amber-bar:#C4903A;
+    --blue:#8AB6F2;  --blue-soft:#17222F;  --blue-bar:#5A8FD6;
+    --lift:0 1px 2px rgba(0,0,0,.5), 0 10px 26px -14px rgba(0,0,0,.7);
+    --lift-lg:0 2px 8px rgba(0,0,0,.55), 0 28px 60px -28px rgba(0,0,0,.8); } }
+  :root[data-theme="dark"] {
+    --paper:#101314; --card:#191D1F; --sunk:#151819; --line:#282D2F; --hair:#212527;
+    --ink:#EDF0F1; --body:#C4CBCF; --muted:#9BA4A9;
+    --green:#67C2A0; --green-soft:#16302A; --green-bar:#3FA684;
+    --violet:#AEA2F7; --violet-soft:#211F3A; --violet-bar:#8578E6;
+    --amber:#E2B36A; --amber-soft:#302616; --amber-bar:#C4903A;
+    --blue:#8AB6F2;  --blue-soft:#17222F;  --blue-bar:#5A8FD6;
+    --lift:0 1px 2px rgba(0,0,0,.5), 0 10px 26px -14px rgba(0,0,0,.7);
+    --lift-lg:0 2px 8px rgba(0,0,0,.55), 0 28px 60px -28px rgba(0,0,0,.8); }
+
+  .tone-green  { --accent:var(--green);  --accent-soft:var(--green-soft);  --accent-bar:var(--green-bar); }
+  .tone-violet { --accent:var(--violet); --accent-soft:var(--violet-soft); --accent-bar:var(--violet-bar); }
+  .tone-amber  { --accent:var(--amber);  --accent-soft:var(--amber-soft);  --accent-bar:var(--amber-bar); }
+  .tone-blue   { --accent:var(--blue);   --accent-soft:var(--blue-soft);   --accent-bar:var(--blue-bar); }
+
+  * { box-sizing:border-box; }
+  body { background:var(--paper); color:var(--body); font-family:var(--sans);
+    font-size:18px; line-height:1.65; margin:0; padding-block:0 100px; padding-inline:20px;
+    -webkit-font-smoothing:antialiased; }
+  .wide { max-width:1120px; margin:0 auto; }
+  .col { max-width:760px; }
+  a { color:var(--accent); text-underline-offset:3px; }
+  :focus-visible { outline:3px solid var(--blue-bar); outline-offset:3px; border-radius:6px; }
+  /* Headings are focused programmatically on view change so screen readers land
+     in the right place. That move should not paint a ring for sighted readers. */
+  [tabindex="-1"]:focus { outline:none; }
+  code { font-family:var(--mono); font-size:.85em; background:var(--sunk);
+    border-radius:5px; padding:.14em .4em; color:var(--ink); }
+  hr { border:none; border-top:1px solid var(--hair); margin:38px 0; }
+  .scroll { overflow-x:auto; }
+
+  .skip { position:absolute; left:-9999px; top:0; background:var(--ink); color:var(--paper);
+    padding:12px 18px; border-radius:0 0 10px 0; z-index:100; text-decoration:none;
+    font-weight:600; font-size:15px; }
+  .skip:focus { left:0; }
+
+  /* smallest type on the page is 12px, and every one of these clears 4.5:1 */
+  .eyebrow, .card-label, .card-meta, .chip, .kick, .clock-name, .clock-key span,
+  .row-meta, .note, header.bar nav a, .back, .btn {
+    font-family:var(--mono); font-weight:500; letter-spacing:.06em; text-transform:uppercase; }
+  .eyebrow, .card-label, .kick { font-size:12px; color:var(--accent); }
+  .card-meta, .chip, .note { font-size:12px; color:var(--muted); }
+
+  /* ---------- bar ---------- */
+  header.bar { position:sticky; top:env(safe-area-inset-top,0px); z-index:30;
+    background:color-mix(in srgb, var(--paper) 92%, transparent);
+    backdrop-filter:saturate(1.3) blur(14px); border-bottom:1px solid var(--hair); }
+  header.bar .wide { display:flex; align-items:center; gap:20px; padding-block:12px; }
+  .brand { font-weight:800; font-size:16px; letter-spacing:-.015em; text-decoration:none;
+    color:var(--ink); white-space:nowrap; }
+  header.bar nav { margin-left:auto; min-width:0; display:flex; gap:6px;
+    overflow-x:auto; scrollbar-width:none; }
+  header.bar nav::-webkit-scrollbar { display:none; }
+  header.bar nav a { font-size:12px; color:var(--muted); text-decoration:none;
+    white-space:nowrap; padding:11px 12px; border-radius:9px; min-height:44px;
+    display:flex; align-items:center; }
+  header.bar nav a:hover { color:var(--ink); background:var(--sunk); }
+  header.bar nav a[aria-current="true"] { color:var(--green); background:var(--green-soft); font-weight:600; }
+  .chip { display:none; align-items:center; gap:7px; background:var(--card);
+    border:1px solid var(--line); border-radius:999px; padding:9px 15px; white-space:nowrap; }
+  @media (min-width:1080px) { .chip { display:inline-flex; } }
+
+  /* ---------- hero ---------- */
+  .hero { padding-block:60px 12px; display:grid; gap:44px; align-items:center; }
+  .hero > * { min-width:0; }
+  @media (min-width:980px) { .hero { grid-template-columns:minmax(0,1fr) minmax(0,.92fr); gap:56px; } }
+  .kick { display:block; margin-bottom:16px; }
+  h1 { font-family:var(--sans); font-weight:800; font-size:clamp(36px,5.6vw,58px);
+    line-height:1.06; letter-spacing:-.03em; margin:0 0 20px; color:var(--ink); text-wrap:balance; }
+  .thesis { font-size:clamp(19px,2.3vw,23px); line-height:1.45; margin:0 0 26px;
+    max-width:30ch; color:var(--body); text-wrap:balance; }
+  .thesis em { font-style:italic; color:var(--green); font-weight:700; }
+  .meta-row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:0 0 18px; }
+  .meta-row span { font-family:var(--mono); font-weight:500; font-size:13px; color:var(--muted); }
+  .meta-row b { color:var(--muted); font-weight:400; opacity:.55; }
+  .byline { font-size:15px; color:var(--muted); margin:0; }
+  .byline b { color:var(--ink); font-weight:700; }
+
+  /* the hero visual: the board, framed like the product it is */
+  .shot { position:relative; }
+  .blob { position:absolute; border-radius:50%; filter:blur(46px); opacity:.5; z-index:0; }
+  .blob-a { width:230px; height:230px; background:var(--green-bar); top:-34px; left:-40px; }
+  .blob-b { width:210px; height:210px; background:var(--violet-bar); bottom:-30px; right:-34px; }
+  .shot-card { position:relative; z-index:1; background:#FFFFFF; border:1px solid var(--line);
+    border-radius:var(--r); box-shadow:var(--lift-lg); overflow:hidden; }
+  .shot-bar { display:flex; gap:7px; padding:13px 16px; border-bottom:1px solid #E9EBE7;
+    background:#F7F8F6; }
+  .shot-bar i { width:10px; height:10px; border-radius:50%; background:#D6DAD4; }
+  .shot-view { height:320px; overflow:hidden; }
+  .shot-view svg { width:196%; height:auto; display:block; margin:-6px 0 0 -8px; }
+  .hand { font-family:var(--hand); font-size:25px; color:var(--green); line-height:1.15;
+    margin:16px 0 0; text-align:right; }
+
+  /* ---------- argument ---------- */
+  .argument { padding-block:76px 0; display:grid; gap:30px; }
+  .beat { display:grid; grid-template-columns:auto minmax(0,1fr); gap:20px; align-items:start; }
+  .dot { width:42px; height:42px; border-radius:50%; background:var(--accent-soft);
+    color:var(--accent); font-weight:700; font-size:16px; display:flex;
+    align-items:center; justify-content:center; flex:none; }
+  .beat h3 { font-weight:700; font-size:clamp(21px,2.2vw,26px); line-height:1.22;
+    letter-spacing:-.018em; margin:6px 0 8px; color:var(--ink); text-wrap:balance; }
+  .beat p { margin:0; font-size:17px; }
+
+  /* ---------- board figure ---------- */
+  figure.board { margin:76px 0 0; }
+  .board-frame { background:#FFFFFF; border:1px solid var(--line); border-radius:var(--r);
+    padding:16px; box-shadow:var(--lift); overflow-x:auto; max-width:100%; }
+  .board-frame svg { display:block; width:100%; min-width:900px; height:auto; }
+  figure.board figcaption { font-size:15px; color:var(--muted); margin-top:14px;
+    line-height:1.55; max-width:78ch; }
+  figure.board figcaption b { color:var(--ink); font-weight:700; }
+
+  /* ---------- figures ---------- */
+  .figures { margin-top:64px; display:grid; gap:14px;
+    grid-template-columns:repeat(auto-fit,minmax(238px,1fr)); }
+  .fig { background:var(--accent-soft); border-radius:var(--r); padding:22px 22px 24px; }
+  .fig-n { margin:0 0 8px; display:flex; align-items:baseline; gap:8px; }
+  .fig-n b { font-weight:800; font-size:42px; line-height:1; letter-spacing:-.035em;
+    color:var(--ink); font-variant-numeric:tabular-nums; }
+  .fig-n span { font-family:var(--mono); font-weight:600; font-size:13px; color:var(--accent); }
+  .fig-l { margin:0; font-size:14.5px; line-height:1.5; color:var(--body); }
+
+  /* ---------- section cards ---------- */
+  .sec-head { display:flex; align-items:center; gap:14px; margin:80px 0 20px; }
+  .sec-head .kick { margin:0; color:var(--green); }
+  .sec-head hr { flex:1; margin:0; border-top:1px solid var(--line); }
+  /* two by two, like the reference — auto-fit gave three and an orphan */
+  .grid { display:grid; gap:16px; grid-template-columns:1fr; }
+  @media (min-width:860px) { .grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  .card { position:relative; display:flex; flex-direction:column; gap:9px;
+    text-decoration:none; color:inherit; background:var(--card);
+    border:1px solid var(--line); border-left:4px solid var(--accent-bar);
+    border-radius:var(--r); padding:22px 24px 24px; box-shadow:var(--lift);
+    transition:transform .16s ease, box-shadow .16s ease; }
+  .card:hover { transform:translateY(-3px); box-shadow:var(--lift-lg); }
+  .card-top { display:flex; align-items:center; gap:12px; margin-bottom:2px; }
+  .num { width:40px; height:40px; border-radius:50%; background:var(--accent-soft);
+    color:var(--accent); font-weight:700; font-size:15px; display:flex;
+    align-items:center; justify-content:center; flex:none; }
+  .go { margin-left:auto; width:34px; height:34px; border-radius:50%; background:var(--accent-soft);
+    color:var(--accent); display:flex; align-items:center; justify-content:center;
+    font-size:16px; flex:none; transition:transform .16s ease; }
+  .card:hover .go { transform:translateX(3px); }
+  .card h3 { font-weight:700; font-size:21px; line-height:1.24; letter-spacing:-.018em;
+    margin:0; color:var(--ink); text-wrap:balance; }
+  .card p { margin:0; font-size:15.5px; line-height:1.55; color:var(--muted); }
+  .card-meta { margin-top:auto; padding-top:10px; }
+
+  /* ---------- featured ---------- */
+  .feature { margin-top:22px; border-radius:var(--r); padding:30px 32px;
+    background:linear-gradient(105deg, var(--green-soft) 0%, var(--violet-soft) 100%);
+    display:flex; gap:26px; align-items:center; flex-wrap:wrap; }
+  .feature .ico { width:56px; height:56px; border-radius:50%; background:var(--green);
+    color:#FFFFFF; display:flex; align-items:center; justify-content:center;
+    font-size:24px; flex:none; }
+  .feature div { flex:1 1 300px; }
+  .feature h2 { font-weight:800; font-size:25px; letter-spacing:-.02em; margin:0 0 7px; color:var(--ink); }
+  .feature p { margin:0; font-size:16px; color:var(--body); max-width:52ch; }
+
+  /* ---------- buttons ---------- */
+  .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    font-size:13px; text-decoration:none; background:var(--ink); color:var(--paper);
+    border:none; border-radius:11px; padding:14px 22px; min-height:48px; cursor:pointer; }
+  .btn:hover { background:var(--green); color:#FFFFFF; }
+  .btn.ghost { background:var(--card); color:var(--ink); border:1px solid var(--line); }
+  .btn.ghost:hover { background:var(--card); color:var(--green); border-color:var(--green); }
+  .btn.small { padding:10px 15px; min-height:40px; font-size:12px; }
+  .btn[disabled] { opacity:.55; cursor:default; }
+  .actions { display:flex; gap:12px; flex-wrap:wrap; }
+
+  /* ---------- ask + faq ---------- */
+  .ask, .faq { margin-top:70px; }
+  .ask-head { display:flex; gap:16px; align-items:flex-start; margin-bottom:8px; }
+  .ask-head .ico { width:48px; height:48px; border-radius:50%; background:var(--violet-soft);
+    color:var(--violet); display:flex; align-items:center; justify-content:center;
+    font-size:21px; flex:none; }
+  .ask h2, .faq h2 { font-weight:800; font-size:27px; letter-spacing:-.022em; margin:0 0 6px; color:var(--ink); }
+  .ask p.lede, .faq p.lede { margin:0 0 22px; font-size:16.5px; color:var(--muted); max-width:56ch; }
+  .ask form { display:grid; gap:13px; max-width:640px; }
+  .ask label { font-family:var(--mono); font-weight:500; font-size:12px; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--muted); }
+  .ask textarea, .ask input { font-family:var(--sans); font-size:17px; color:var(--ink);
+    background:var(--card); border:1px solid var(--line); border-radius:12px;
+    padding:15px 17px; width:100%; resize:vertical; }
+  .ask textarea { min-height:116px; line-height:1.55; }
+  .ask textarea::placeholder, .ask input::placeholder { color:var(--muted); }
+  .ask-row { display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+  .ask-row input { flex:1 1 230px; width:auto; }
+  .askmsg { font-size:16px; margin:16px 0 0; padding:15px 18px; border-radius:12px;
+    background:var(--green-soft); color:var(--ink); max-width:640px; }
+  .askmsg.bad { background:var(--amber-soft); }
+
+  .qa { background:var(--card); border:1px solid var(--line); border-radius:var(--r);
+    padding:22px 24px; margin-bottom:14px; }
+  .qa h3 { font-weight:700; font-size:19px; line-height:1.3; margin:0 0 9px; color:var(--ink);
+    letter-spacing:-.012em; text-wrap:balance; }
+  .qa p { margin:0; font-size:16.5px; }
+  .qa .who { font-family:var(--mono); font-weight:500; font-size:12px; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--muted); display:block; margin-top:12px; }
+  .faq-empty { font-size:16px; color:var(--muted); margin:0; padding:24px;
+    background:var(--sunk); border-radius:var(--r); }
+
+  /* ---------- contact ---------- */
+  .contact { margin-top:70px; padding-top:34px; border-top:1px solid var(--line); }
+  .contact h2, .contact p { max-width:54ch; }
+  .contact h2 { font-weight:800; font-size:25px; letter-spacing:-.02em; margin:0 0 8px; color:var(--ink); }
+  .contact p { margin:0 0 20px; font-size:16.5px; color:var(--muted); max-width:54ch; }
+
+  /* ---------- document views ---------- */
+  .view { padding-block:34px 0; }
+  .back { font-size:12px; color:var(--muted); text-decoration:none;
+    display:inline-flex; align-items:center; min-height:44px; }
+  .back:hover { color:var(--ink); }
+  .back-end { margin-top:52px; padding-top:22px; border-top:1px solid var(--hair); width:100%; }
+  .doc-head { margin:14px 0 36px; }
+  .doc-head h2 { font-weight:800; font-size:clamp(30px,4.4vw,42px); line-height:1.1;
+    letter-spacing:-.03em; margin:10px 0 14px; color:var(--ink); text-wrap:balance; }
+  .blurb { color:var(--muted); margin:0; font-size:17px; max-width:58ch; }
+
+  .prose { max-width:70ch; }
+  .prose > h2 { font-weight:800; font-size:27px; line-height:1.2; margin:54px 0 8px;
+    letter-spacing:-.024em; color:var(--ink); text-wrap:balance; }
+  .prose > h3 { font-weight:700; font-size:21px; line-height:1.26; margin:40px 0 6px;
+    letter-spacing:-.016em; color:var(--ink); text-wrap:balance; }
+  .prose > h4 { font-family:var(--mono); font-weight:600; font-size:13px; letter-spacing:.07em;
+    text-transform:uppercase; color:var(--muted); margin:32px 0 4px; }
+  .prose p { margin:15px 0; }
+  .prose ul, .prose ol { margin:15px 0; padding-left:25px; }
+  .prose li { margin:9px 0; padding-left:4px; }
+  .prose li::marker { color:var(--accent); }
+  .prose blockquote { margin:26px 0; padding:22px 26px; background:var(--accent-soft);
+    border-radius:var(--r); color:var(--ink); font-weight:600; font-size:19.5px; line-height:1.45; }
+  .prose blockquote p { margin:0; }
+  .prose strong { font-weight:700; color:var(--ink); }
+  .prose em { font-style:italic; }
+  .prose hr { margin:46px 0; }
+  table { border-collapse:collapse; width:100%; font-size:16px;
+    font-variant-numeric:tabular-nums; margin:24px 0; }
+  th, td { text-align:left; padding:12px 16px 12px 0; border-bottom:1px solid var(--hair);
+    vertical-align:top; }
+  th { font-family:var(--mono); font-weight:600; font-size:12px; letter-spacing:.07em;
+    text-transform:uppercase; color:var(--muted); }
+  .pending { color:var(--muted); font-style:italic; }
+
+  .prompt { background:var(--card); border:1px solid var(--line); border-radius:var(--r);
+    padding:24px; margin-bottom:20px; }
+  .prompt-head { display:flex; gap:14px; align-items:center; justify-content:space-between;
+    flex-wrap:wrap; margin-bottom:6px; }
+  .prompt h3 { font-weight:700; font-size:21px; margin:0; color:var(--ink); letter-spacing:-.016em; }
+  .prompt pre { font-family:var(--mono); font-weight:500; font-size:13.5px; line-height:1.7;
+    white-space:pre-wrap; background:var(--sunk); border-radius:12px; padding:20px;
+    margin:16px 0 0; max-height:360px; overflow-y:auto; color:var(--ink); }
+
+  /* The blobs sit outside .shot by design. On a phone that pushed the page
+     wider than the viewport, so they tuck back inside below the hero breakpoint. */
+  @media (max-width:980px) {
+    .blob-a { width:180px; height:180px; top:-16px; left:-8px; }
+    .blob-b { width:170px; height:170px; bottom:-16px; right:-8px; }
+  }
+  @media (max-width:680px) {
+    body { font-size:17px; }
+    .beat { grid-template-columns:1fr; gap:10px; }
+    .hand { text-align:left; }
+    .shot-view { height:250px; }
+    .feature { padding:24px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { animation:none !important; transition:none !important; } }
+</style>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="bar">
+  <div class="wide">
+    <a class="brand" href="#top">Process That Runs Itself</a>
+    <nav aria-label="Sections"><a href="#talk" data-nav="talk">The talk</a><a href="#fundamentals" data-nav="fundamentals">The rules</a><a href="#automations" data-nav="automations">What we built</a><a href="#github" data-nav="github">The setup</a><a href="#prompts" data-nav="prompts">Prompts</a><a href="#questions" data-nav="questions">Questions</a></nav>
+    <span class="chip">New York &middot; Oct 2026</span>
+  </div>
+</header>
+
+<main id="main">
+  <section class="view" id="view-home" aria-labelledby="h-home">
+    <div class="wide">
+      <div class="hero">
+        <div>
+          <span class="kick">Women Who Code Leadership Summit</span>
+          <h1 id="h-home">Rebuilding our product process around AI</h1>
+          <p class="thesis">In a world where work moves faster than ever, process matters <em>more</em> &mdash; not less.</p>
+          <p class="meta-row"><span>Thursday 8 October 2026</span><b>&middot;</b><span>New York</span><b>&middot;</b><span>Case study</span></p>
+          <p class="byline"><b>Emma Lewis</b>, Director of Product Management</p>
+        </div>
+
+        <div class="shot">
+          <span class="blob blob-a" aria-hidden="true"></span>
+          <span class="blob blob-b" aria-hidden="true"></span>
+          <div class="shot-card">
+            <div class="shot-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+            <div class="shot-view" role="img" aria-label="A cycle board showing three teams and their milestones across a cycle, generated automatically."><svg xmlns="http://www.w3.org/2000/svg" width="1508" height="716" viewBox="0 0 1508 716" role="img" aria-label="An illustrative cycle board showing three fruit-named teams, their milestones across eleven weeks, and the state of each pull request underneath.">
+<rect width="1508" height="716" fill="#FFFFFF"/>
+<rect x="668" y="58" width="116" height="630" fill="#EFF1F4"/>
+<rect x="1248" y="58" width="116" height="630" fill="#EFF1F4"/>
+<rect x="28" y="208" width="1452" height="118" fill="#F7F8FA"/>
+<rect x="28" y="444" width="1452" height="96" fill="#F7F8FA"/>
+<rect x="28" y="614" width="1452" height="74" fill="#F7F8FA"/>
+<text x="28" y="42" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#79818C" font-weight="700" text-anchor="start" letter-spacing="1.4">CYCLE 7</text>
+<text x="262" y="42" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="10" fill="#79818C" font-weight="700" text-anchor="middle" letter-spacing="1">WEEK 1</text>
+<text x="262" y="60" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#AEB4BC" font-weight="400" text-anchor="middle">6 Jan</text>
+<text x="378" y="42" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="10" fill="#79818C" font-weight="700" text-anchor="middle" letter-spacing="1">WEEK 2</text>
+<text x="378" y="60" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#AEB4BC" font-weight="400" text-anchor="middle">13 Jan</text>
+<text x="494" y="42" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="10" fill="#79818C" font-weight="700" text-anchor="middle" letter-spacing="1">WEEK 3</text>
+<text x="494" y="60" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#AEB4BC" font-weight="400" text-anchor="middle">20 Jan</text>
+<text x="610" y="42" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="10" fill="#79818C" font-weight="700" text-anchor="middle" letter-spacing="1">WEEK 4</text>
+<text x="610" y="60" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#AEB4BC" font-weight="400" text-anchor="middle">27 Jan</text>
+<text x="726" y="42" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="10" fill="#A96A14" font-weight="700" text-anchor="middle" letter-spacing="1">COOLDOWN</text>
+<text x="726" y="60" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#AEB4BC" font-weight="400" text-anchor="middle">3 Feb</text>
+<text x="842" y="42" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="10" fill="#79818C" font-weight="700" text-anchor="middle" letter-spacing="1">WEEK 6</text>
+<text x="842" y="60" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#AEB4BC" font-weight="400" text-anchor="middle">10 Feb</text>
+<text x="958" y="42" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="10" fill="#79818C" font-weight="700" text-anchor="middle" letter-spacing="1">WEEK 7</text>
+<text x="958" y="60" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#AEB4BC" font-weight="400" text-anchor="middle">17 Feb</text>
+<text x="1074" y="42" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="10" fill="#79818C" font-weight="700" text-anchor="middle" letter-spacing="1">WEEK 8</text>
+<text x="1074" y="60" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#AEB4BC" font-weight="400" text-anchor="middle">24 Feb</text>
+<text x="1190" y="42" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="10" fill="#79818C" font-weight="700" text-anchor="middle" letter-spacing="1">WEEK 9</text>
+<text x="1190" y="60" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#AEB4BC" font-weight="400" text-anchor="middle">3 Mar</text>
+<text x="1306" y="42" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="10" fill="#A96A14" font-weight="700" text-anchor="middle" letter-spacing="1">COOLDOWN</text>
+<text x="1306" y="60" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#AEB4BC" font-weight="400" text-anchor="middle">10 Mar</text>
+<text x="1422" y="42" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="10" fill="#79818C" font-weight="700" text-anchor="middle" letter-spacing="1">WEEK 11</text>
+<text x="1422" y="60" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#AEB4BC" font-weight="400" text-anchor="middle">17 Mar</text>
+<line x1="204" y1="68" x2="204" y2="688" stroke="#E4E7EB" stroke-width="1"/>
+<line x1="320" y1="68" x2="320" y2="688" stroke="#E4E7EB" stroke-width="1"/>
+<line x1="436" y1="68" x2="436" y2="688" stroke="#E4E7EB" stroke-width="1"/>
+<line x1="552" y1="68" x2="552" y2="688" stroke="#E4E7EB" stroke-width="1"/>
+<line x1="668" y1="68" x2="668" y2="688" stroke="#E4E7EB" stroke-width="1"/>
+<line x1="784" y1="68" x2="784" y2="688" stroke="#E4E7EB" stroke-width="1"/>
+<line x1="900" y1="68" x2="900" y2="688" stroke="#E4E7EB" stroke-width="1"/>
+<line x1="1016" y1="68" x2="1016" y2="688" stroke="#E4E7EB" stroke-width="1"/>
+<line x1="1132" y1="68" x2="1132" y2="688" stroke="#E4E7EB" stroke-width="1"/>
+<line x1="1248" y1="68" x2="1248" y2="688" stroke="#E4E7EB" stroke-width="1"/>
+<line x1="1364" y1="68" x2="1364" y2="688" stroke="#E4E7EB" stroke-width="1"/>
+<line x1="1480" y1="68" x2="1480" y2="688" stroke="#E4E7EB" stroke-width="1"/>
+<line x1="28" y1="90" x2="1480" y2="90" stroke="#E4E7EB"/>
+<line x1="28" y1="208" x2="1480" y2="208" stroke="#E4E7EB"/>
+<line x1="28" y1="326" x2="1480" y2="326" stroke="#E4E7EB"/>
+<line x1="28" y1="444" x2="1480" y2="444" stroke="#E4E7EB"/>
+<line x1="28" y1="540" x2="1480" y2="540" stroke="#E4E7EB"/>
+<line x1="28" y1="614" x2="1480" y2="614" stroke="#E4E7EB"/>
+<line x1="28" y1="688" x2="1480" y2="688" stroke="#E4E7EB"/>
+<text x="28" y="116" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="14" fill="#101418" font-weight="700" text-anchor="start">Team Apple</text>
+<text x="28" y="135" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#AEB4BC" font-weight="400" text-anchor="start">2 milestones</text>
+<rect x="209" y="104" width="454" height="52" rx="8" fill="#EEF3F2" stroke="#D5E0DD" stroke-width="1"/>
+<clipPath id="clip209-104"><rect x="209" y="104" width="454" height="52" rx="8" fill="#000"/></clipPath><g clip-path="url(#clip209-104)"><rect x="209" y="104" width="454" height="52" rx="0" fill="#6FAA9F"/></g>
+<text x="221" y="125" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="13" fill="#101418" font-weight="700" text-anchor="start">Basket Sorting · M3</text>
+<text x="221" y="142" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#3F4650" font-weight="400" text-anchor="start">6/6 written</text>
+<circle cx="225" cy="166" r="3.5" fill="#14635A"/>
+<text x="236" y="170" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#79818C" font-weight="400" text-anchor="start">Member Fun — merged</text>
+<circle cx="225" cy="181" r="3.5" fill="#14635A"/>
+<text x="236" y="185" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#79818C" font-weight="400" text-anchor="start">Member Wobble — merged</text>
+<rect x="789" y="104" width="454" height="52" rx="8" fill="#EEF3F2" stroke="#D5E0DD" stroke-width="1"/>
+<clipPath id="clip789-104"><rect x="789" y="104" width="454" height="52" rx="8" fill="#000"/></clipPath><g clip-path="url(#clip789-104)"><rect x="789" y="104" width="259.4285714285714" height="52" rx="0" fill="#A9CCC5"/></g>
+<text x="801" y="125" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="13" fill="#101418" font-weight="700" text-anchor="start">Basket Sharing · M4</text>
+<text x="801" y="142" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#3F4650" font-weight="400" text-anchor="start">4/7 written</text>
+<circle cx="805" cy="166" r="3.5" fill="#14635A"/>
+<text x="816" y="170" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#79818C" font-weight="400" text-anchor="start">Member Fun — merged</text>
+<circle cx="805" cy="181" r="3.5" fill="#A96A14"/>
+<text x="816" y="185" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#79818C" font-weight="400" text-anchor="start">Member Silly — in review  ·  4d</text>
+<circle cx="805" cy="196" r="3.5" fill="#AEB4BC"/>
+<text x="816" y="200" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#79818C" font-weight="400" text-anchor="start">Member Noodle — draft  ·  1d</text>
+<text x="28" y="234" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="14" fill="#101418" font-weight="700" text-anchor="start">Team Banana</text>
+<text x="28" y="253" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#AEB4BC" font-weight="400" text-anchor="start">2 milestones</text>
+<rect x="209" y="222" width="338" height="52" rx="8" fill="#EEF3F2" stroke="#D5E0DD" stroke-width="1"/>
+<clipPath id="clip209-222"><rect x="209" y="222" width="338" height="52" rx="8" fill="#000"/></clipPath><g clip-path="url(#clip209-222)"><rect x="209" y="222" width="338" height="52" rx="0" fill="#6FAA9F"/></g>
+<text x="221" y="243" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="13" fill="#101418" font-weight="700" text-anchor="start">Peel Detection · M2</text>
+<text x="221" y="260" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#3F4650" font-weight="400" text-anchor="start">5/5 written</text>
+<circle cx="225" cy="284" r="3.5" fill="#14635A"/>
+<text x="236" y="288" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#79818C" font-weight="400" text-anchor="start">Member Sprocket — merged</text>
+<rect x="1137" y="222" width="338" height="52" rx="8" fill="none" stroke="#C6CBD1" stroke-width="1.5" stroke-dasharray="5 4"/>
+<text x="1306" y="252" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#AEB4BC" font-weight="400" text-anchor="middle">forecast</text>
+<rect x="557" y="222" width="570" height="52" rx="8" fill="#FBF1DE" stroke="#E3C58C" stroke-width="2"/>
+<clipPath id="clip557-222"><rect x="557" y="222" width="570" height="52" rx="8" fill="#000"/></clipPath><g clip-path="url(#clip557-222)"><rect x="557" y="222" width="316.6666666666667" height="52" rx="0" fill="#A9CCC5"/></g>
+<text x="569" y="243" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="13" fill="#101418" font-weight="700" text-anchor="start">Peel Analytics · M3</text>
+<text x="569" y="260" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#3F4650" font-weight="400" text-anchor="start">5/9 written</text>
+<text x="1115" y="260" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#A96A14" font-weight="700" text-anchor="end">⏱ Week 5 of a 5-week cap</text>
+<circle cx="573" cy="284" r="3.5" fill="#14635A"/>
+<text x="584" y="288" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#79818C" font-weight="400" text-anchor="start">Member Pickle — merged</text>
+<circle cx="573" cy="299" r="3.5" fill="#A96A14"/>
+<text x="584" y="303" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#79818C" font-weight="400" text-anchor="start">Member Silly — in review  ·  11d</text>
+<text x="28" y="352" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="14" fill="#101418" font-weight="700" text-anchor="start">Team Orange</text>
+<text x="28" y="371" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#AEB4BC" font-weight="400" text-anchor="start">2 milestones</text>
+<rect x="209" y="340" width="454" height="52" rx="8" fill="#EEF3F2" stroke="#D5E0DD" stroke-width="1"/>
+<clipPath id="clip209-340"><rect x="209" y="340" width="454" height="52" rx="8" fill="#000"/></clipPath><g clip-path="url(#clip209-340)"><rect x="209" y="340" width="454" height="52" rx="0" fill="#6FAA9F"/></g>
+<text x="221" y="361" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="13" fill="#101418" font-weight="700" text-anchor="start">Juice Pipeline · M5</text>
+<text x="221" y="378" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#3F4650" font-weight="400" text-anchor="start">4/4 written</text>
+<circle cx="225" cy="402" r="3.5" fill="#14635A"/>
+<text x="236" y="406" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#79818C" font-weight="400" text-anchor="start">Member Noodle — merged</text>
+<rect x="789" y="340" width="454" height="52" rx="8" fill="#EEF3F2" stroke="#D5E0DD" stroke-width="1"/>
+<clipPath id="clip789-340"><rect x="789" y="340" width="454" height="52" rx="8" fill="#000"/></clipPath><g clip-path="url(#clip789-340)"><rect x="789" y="340" width="181.60000000000002" height="52" rx="0" fill="#A9CCC5"/></g>
+<text x="801" y="361" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="13" fill="#101418" font-weight="700" text-anchor="start">Pulp Settings · M6</text>
+<text x="801" y="378" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#3F4650" font-weight="400" text-anchor="start">2/5 written</text>
+<circle cx="805" cy="402" r="3.5" fill="#A96A14"/>
+<text x="816" y="406" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#79818C" font-weight="400" text-anchor="start">Member Wobble — in review  ·  2d</text>
+<circle cx="805" cy="417" r="3.5" fill="#AEB4BC"/>
+<text x="816" y="421" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#79818C" font-weight="400" text-anchor="start">Member Fun — draft  ·  3d</text>
+<text x="28" y="470" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="14" fill="#101418" font-weight="700" text-anchor="start">Side Projects</text>
+<text x="28" y="489" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#AEB4BC" font-weight="400" text-anchor="start">1 milestone</text>
+<rect x="789" y="458" width="454" height="52" rx="8" fill="#EEF3F2" stroke="#D5E0DD" stroke-width="1"/>
+<clipPath id="clip789-458"><rect x="789" y="458" width="454" height="52" rx="8" fill="#000"/></clipPath><g clip-path="url(#clip789-458)"><rect x="789" y="458" width="454" height="52" rx="0" fill="#A9CCC5"/></g>
+<text x="801" y="479" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="13" fill="#101418" font-weight="700" text-anchor="start">Month Grid</text>
+<text x="801" y="496" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#3F4650" font-weight="400" text-anchor="start">6/6 written</text>
+<circle cx="805" cy="520" r="3.5" fill="#A96A14"/>
+<text x="816" y="524" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#79818C" font-weight="400" text-anchor="start">Member Sprocket — in review  ·  2d</text>
+<text x="28" y="566" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="14" fill="#101418" font-weight="700" text-anchor="start">Enhancements</text>
+<rect x="325" y="554" width="222" height="38" rx="8" fill="#EEF3F2" stroke="#D5E0DD" stroke-width="1"/>
+<clipPath id="clip325-554"><rect x="325" y="554" width="222" height="38" rx="8" fill="#000"/></clipPath><g clip-path="url(#clip325-554)"><rect x="325" y="554" width="222" height="38" rx="0" fill="#6FAA9F"/></g>
+<text x="337" y="571" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="12" fill="#101418" font-weight="700" text-anchor="start">Sort by ripeness</text>
+<text x="337" y="585" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#3F4650" font-weight="400" text-anchor="start">1/1 written</text>
+<rect x="789" y="554" width="222" height="38" rx="8" fill="#EEF3F2" stroke="#D5E0DD" stroke-width="1"/>
+<clipPath id="clip789-554"><rect x="789" y="554" width="222" height="38" rx="8" fill="#000"/></clipPath><g clip-path="url(#clip789-554)"><rect x="789" y="554" width="222" height="38" rx="0" fill="#6FAA9F"/></g>
+<text x="801" y="571" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="12" fill="#101418" font-weight="700" text-anchor="start">Bulk relabel</text>
+<text x="801" y="585" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#3F4650" font-weight="400" text-anchor="start">1/1 written</text>
+<rect x="1021" y="554" width="222" height="38" rx="8" fill="#EEF3F2" stroke="#D5E0DD" stroke-width="1"/>
+<text x="1033" y="571" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="12" fill="#101418" font-weight="700" text-anchor="start">Export basket</text>
+<text x="1033" y="585" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#3F4650" font-weight="400" text-anchor="start">0/1 written</text>
+<text x="28" y="640" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="14" fill="#101418" font-weight="700" text-anchor="start">Support</text>
+<rect x="209" y="628" width="1266" height="38" rx="8" fill="#EEF3F2" stroke="#D5E0DD" stroke-width="1"/>
+<text x="221" y="645" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="12" fill="#101418" font-weight="700" text-anchor="start">14 tickets QA-ready or merged</text>
+<line x1="1068.1999999999998" y1="68" x2="1068.1999999999998" y2="688" stroke="#C4402F" stroke-width="2"/>
+<circle cx="1068.1999999999998" cy="68" r="4" fill="#C4402F"/>
+<text x="1076.1999999999998" y="84" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="10" fill="#C4402F" font-weight="700" text-anchor="start" letter-spacing="1">TODAY</text>
+</svg></div>
+          </div>
+          <p class="hand">Nobody updates this.</p>
+        </div>
+      </div>
+
+      <div class="argument col"><div class="beat tone-green"><span class="dot" aria-hidden="true">1</span><div><h3>The old boundary disappeared</h3><p>Good, fast, cheap: pick two. For decades developer time was finite, so everyone accepted the trade-off. AI removed it. Now the industry expects all three, and nothing stops a team from running itself into the ground.</p></div></div><div class="beat tone-violet"><span class="dot" aria-hidden="true">2</span><div><h3>So we built boundaries back in, on purpose</h3><p>A four-week limit on every milestone, so building stays an investment decision. Must-haves and nice-to-haves, so scope has a floor and a ceiling. And a cooldown week after every cycle, because we are not robots.</p></div></div><div class="beat tone-amber"><span class="dot" aria-hidden="true">3</span><div><h3>And I had to learn to set my own</h3><p>AI made us better and faster. It also spread me thinner, because it’s tempting to use it for everything. Setting real expectations is the only way I’ve avoided burnout as my role has grown.</p></div></div></div>
+
+      <figure class="board">
+        <div class="board-frame"><svg xmlns="http://www.w3.org/2000/svg" width="1508" height="716" viewBox="0 0 1508 716" role="img" aria-label="An illustrative cycle board showing three fruit-named teams, their milestones across eleven weeks, and the state of each pull request underneath.">
+<rect width="1508" height="716" fill="#FFFFFF"/>
+<rect x="668" y="58" width="116" height="630" fill="#EFF1F4"/>
+<rect x="1248" y="58" width="116" height="630" fill="#EFF1F4"/>
+<rect x="28" y="208" width="1452" height="118" fill="#F7F8FA"/>
+<rect x="28" y="444" width="1452" height="96" fill="#F7F8FA"/>
+<rect x="28" y="614" width="1452" height="74" fill="#F7F8FA"/>
+<text x="28" y="42" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#79818C" font-weight="700" text-anchor="start" letter-spacing="1.4">CYCLE 7</text>
+<text x="262" y="42" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="10" fill="#79818C" font-weight="700" text-anchor="middle" letter-spacing="1">WEEK 1</text>
+<text x="262" y="60" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#AEB4BC" font-weight="400" text-anchor="middle">6 Jan</text>
+<text x="378" y="42" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="10" fill="#79818C" font-weight="700" text-anchor="middle" letter-spacing="1">WEEK 2</text>
+<text x="378" y="60" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#AEB4BC" font-weight="400" text-anchor="middle">13 Jan</text>
+<text x="494" y="42" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="10" fill="#79818C" font-weight="700" text-anchor="middle" letter-spacing="1">WEEK 3</text>
+<text x="494" y="60" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#AEB4BC" font-weight="400" text-anchor="middle">20 Jan</text>
+<text x="610" y="42" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="10" fill="#79818C" font-weight="700" text-anchor="middle" letter-spacing="1">WEEK 4</text>
+<text x="610" y="60" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#AEB4BC" font-weight="400" text-anchor="middle">27 Jan</text>
+<text x="726" y="42" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="10" fill="#A96A14" font-weight="700" text-anchor="middle" letter-spacing="1">COOLDOWN</text>
+<text x="726" y="60" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#AEB4BC" font-weight="400" text-anchor="middle">3 Feb</text>
+<text x="842" y="42" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="10" fill="#79818C" font-weight="700" text-anchor="middle" letter-spacing="1">WEEK 6</text>
+<text x="842" y="60" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#AEB4BC" font-weight="400" text-anchor="middle">10 Feb</text>
+<text x="958" y="42" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="10" fill="#79818C" font-weight="700" text-anchor="middle" letter-spacing="1">WEEK 7</text>
+<text x="958" y="60" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#AEB4BC" font-weight="400" text-anchor="middle">17 Feb</text>
+<text x="1074" y="42" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="10" fill="#79818C" font-weight="700" text-anchor="middle" letter-spacing="1">WEEK 8</text>
+<text x="1074" y="60" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#AEB4BC" font-weight="400" text-anchor="middle">24 Feb</text>
+<text x="1190" y="42" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="10" fill="#79818C" font-weight="700" text-anchor="middle" letter-spacing="1">WEEK 9</text>
+<text x="1190" y="60" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#AEB4BC" font-weight="400" text-anchor="middle">3 Mar</text>
+<text x="1306" y="42" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="10" fill="#A96A14" font-weight="700" text-anchor="middle" letter-spacing="1">COOLDOWN</text>
+<text x="1306" y="60" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#AEB4BC" font-weight="400" text-anchor="middle">10 Mar</text>
+<text x="1422" y="42" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="10" fill="#79818C" font-weight="700" text-anchor="middle" letter-spacing="1">WEEK 11</text>
+<text x="1422" y="60" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#AEB4BC" font-weight="400" text-anchor="middle">17 Mar</text>
+<line x1="204" y1="68" x2="204" y2="688" stroke="#E4E7EB" stroke-width="1"/>
+<line x1="320" y1="68" x2="320" y2="688" stroke="#E4E7EB" stroke-width="1"/>
+<line x1="436" y1="68" x2="436" y2="688" stroke="#E4E7EB" stroke-width="1"/>
+<line x1="552" y1="68" x2="552" y2="688" stroke="#E4E7EB" stroke-width="1"/>
+<line x1="668" y1="68" x2="668" y2="688" stroke="#E4E7EB" stroke-width="1"/>
+<line x1="784" y1="68" x2="784" y2="688" stroke="#E4E7EB" stroke-width="1"/>
+<line x1="900" y1="68" x2="900" y2="688" stroke="#E4E7EB" stroke-width="1"/>
+<line x1="1016" y1="68" x2="1016" y2="688" stroke="#E4E7EB" stroke-width="1"/>
+<line x1="1132" y1="68" x2="1132" y2="688" stroke="#E4E7EB" stroke-width="1"/>
+<line x1="1248" y1="68" x2="1248" y2="688" stroke="#E4E7EB" stroke-width="1"/>
+<line x1="1364" y1="68" x2="1364" y2="688" stroke="#E4E7EB" stroke-width="1"/>
+<line x1="1480" y1="68" x2="1480" y2="688" stroke="#E4E7EB" stroke-width="1"/>
+<line x1="28" y1="90" x2="1480" y2="90" stroke="#E4E7EB"/>
+<line x1="28" y1="208" x2="1480" y2="208" stroke="#E4E7EB"/>
+<line x1="28" y1="326" x2="1480" y2="326" stroke="#E4E7EB"/>
+<line x1="28" y1="444" x2="1480" y2="444" stroke="#E4E7EB"/>
+<line x1="28" y1="540" x2="1480" y2="540" stroke="#E4E7EB"/>
+<line x1="28" y1="614" x2="1480" y2="614" stroke="#E4E7EB"/>
+<line x1="28" y1="688" x2="1480" y2="688" stroke="#E4E7EB"/>
+<text x="28" y="116" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="14" fill="#101418" font-weight="700" text-anchor="start">Team Apple</text>
+<text x="28" y="135" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#AEB4BC" font-weight="400" text-anchor="start">2 milestones</text>
+<rect x="209" y="104" width="454" height="52" rx="8" fill="#EEF3F2" stroke="#D5E0DD" stroke-width="1"/>
+<clipPath id="clip209-104"><rect x="209" y="104" width="454" height="52" rx="8" fill="#000"/></clipPath><g clip-path="url(#clip209-104)"><rect x="209" y="104" width="454" height="52" rx="0" fill="#6FAA9F"/></g>
+<text x="221" y="125" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="13" fill="#101418" font-weight="700" text-anchor="start">Basket Sorting · M3</text>
+<text x="221" y="142" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#3F4650" font-weight="400" text-anchor="start">6/6 written</text>
+<circle cx="225" cy="166" r="3.5" fill="#14635A"/>
+<text x="236" y="170" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#79818C" font-weight="400" text-anchor="start">Member Fun — merged</text>
+<circle cx="225" cy="181" r="3.5" fill="#14635A"/>
+<text x="236" y="185" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#79818C" font-weight="400" text-anchor="start">Member Wobble — merged</text>
+<rect x="789" y="104" width="454" height="52" rx="8" fill="#EEF3F2" stroke="#D5E0DD" stroke-width="1"/>
+<clipPath id="clip789-104"><rect x="789" y="104" width="454" height="52" rx="8" fill="#000"/></clipPath><g clip-path="url(#clip789-104)"><rect x="789" y="104" width="259.4285714285714" height="52" rx="0" fill="#A9CCC5"/></g>
+<text x="801" y="125" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="13" fill="#101418" font-weight="700" text-anchor="start">Basket Sharing · M4</text>
+<text x="801" y="142" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#3F4650" font-weight="400" text-anchor="start">4/7 written</text>
+<circle cx="805" cy="166" r="3.5" fill="#14635A"/>
+<text x="816" y="170" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#79818C" font-weight="400" text-anchor="start">Member Fun — merged</text>
+<circle cx="805" cy="181" r="3.5" fill="#A96A14"/>
+<text x="816" y="185" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#79818C" font-weight="400" text-anchor="start">Member Silly — in review  ·  4d</text>
+<circle cx="805" cy="196" r="3.5" fill="#AEB4BC"/>
+<text x="816" y="200" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#79818C" font-weight="400" text-anchor="start">Member Noodle — draft  ·  1d</text>
+<text x="28" y="234" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="14" fill="#101418" font-weight="700" text-anchor="start">Team Banana</text>
+<text x="28" y="253" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#AEB4BC" font-weight="400" text-anchor="start">2 milestones</text>
+<rect x="209" y="222" width="338" height="52" rx="8" fill="#EEF3F2" stroke="#D5E0DD" stroke-width="1"/>
+<clipPath id="clip209-222"><rect x="209" y="222" width="338" height="52" rx="8" fill="#000"/></clipPath><g clip-path="url(#clip209-222)"><rect x="209" y="222" width="338" height="52" rx="0" fill="#6FAA9F"/></g>
+<text x="221" y="243" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="13" fill="#101418" font-weight="700" text-anchor="start">Peel Detection · M2</text>
+<text x="221" y="260" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#3F4650" font-weight="400" text-anchor="start">5/5 written</text>
+<circle cx="225" cy="284" r="3.5" fill="#14635A"/>
+<text x="236" y="288" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#79818C" font-weight="400" text-anchor="start">Member Sprocket — merged</text>
+<rect x="1137" y="222" width="338" height="52" rx="8" fill="none" stroke="#C6CBD1" stroke-width="1.5" stroke-dasharray="5 4"/>
+<text x="1306" y="252" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#AEB4BC" font-weight="400" text-anchor="middle">forecast</text>
+<rect x="557" y="222" width="570" height="52" rx="8" fill="#FBF1DE" stroke="#E3C58C" stroke-width="2"/>
+<clipPath id="clip557-222"><rect x="557" y="222" width="570" height="52" rx="8" fill="#000"/></clipPath><g clip-path="url(#clip557-222)"><rect x="557" y="222" width="316.6666666666667" height="52" rx="0" fill="#A9CCC5"/></g>
+<text x="569" y="243" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="13" fill="#101418" font-weight="700" text-anchor="start">Peel Analytics · M3</text>
+<text x="569" y="260" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#3F4650" font-weight="400" text-anchor="start">5/9 written</text>
+<text x="1115" y="260" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#A96A14" font-weight="700" text-anchor="end">⏱ Week 5 of a 5-week cap</text>
+<circle cx="573" cy="284" r="3.5" fill="#14635A"/>
+<text x="584" y="288" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#79818C" font-weight="400" text-anchor="start">Member Pickle — merged</text>
+<circle cx="573" cy="299" r="3.5" fill="#A96A14"/>
+<text x="584" y="303" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#79818C" font-weight="400" text-anchor="start">Member Silly — in review  ·  11d</text>
+<text x="28" y="352" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="14" fill="#101418" font-weight="700" text-anchor="start">Team Orange</text>
+<text x="28" y="371" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#AEB4BC" font-weight="400" text-anchor="start">2 milestones</text>
+<rect x="209" y="340" width="454" height="52" rx="8" fill="#EEF3F2" stroke="#D5E0DD" stroke-width="1"/>
+<clipPath id="clip209-340"><rect x="209" y="340" width="454" height="52" rx="8" fill="#000"/></clipPath><g clip-path="url(#clip209-340)"><rect x="209" y="340" width="454" height="52" rx="0" fill="#6FAA9F"/></g>
+<text x="221" y="361" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="13" fill="#101418" font-weight="700" text-anchor="start">Juice Pipeline · M5</text>
+<text x="221" y="378" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#3F4650" font-weight="400" text-anchor="start">4/4 written</text>
+<circle cx="225" cy="402" r="3.5" fill="#14635A"/>
+<text x="236" y="406" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#79818C" font-weight="400" text-anchor="start">Member Noodle — merged</text>
+<rect x="789" y="340" width="454" height="52" rx="8" fill="#EEF3F2" stroke="#D5E0DD" stroke-width="1"/>
+<clipPath id="clip789-340"><rect x="789" y="340" width="454" height="52" rx="8" fill="#000"/></clipPath><g clip-path="url(#clip789-340)"><rect x="789" y="340" width="181.60000000000002" height="52" rx="0" fill="#A9CCC5"/></g>
+<text x="801" y="361" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="13" fill="#101418" font-weight="700" text-anchor="start">Pulp Settings · M6</text>
+<text x="801" y="378" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#3F4650" font-weight="400" text-anchor="start">2/5 written</text>
+<circle cx="805" cy="402" r="3.5" fill="#A96A14"/>
+<text x="816" y="406" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#79818C" font-weight="400" text-anchor="start">Member Wobble — in review  ·  2d</text>
+<circle cx="805" cy="417" r="3.5" fill="#AEB4BC"/>
+<text x="816" y="421" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#79818C" font-weight="400" text-anchor="start">Member Fun — draft  ·  3d</text>
+<text x="28" y="470" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="14" fill="#101418" font-weight="700" text-anchor="start">Side Projects</text>
+<text x="28" y="489" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#AEB4BC" font-weight="400" text-anchor="start">1 milestone</text>
+<rect x="789" y="458" width="454" height="52" rx="8" fill="#EEF3F2" stroke="#D5E0DD" stroke-width="1"/>
+<clipPath id="clip789-458"><rect x="789" y="458" width="454" height="52" rx="8" fill="#000"/></clipPath><g clip-path="url(#clip789-458)"><rect x="789" y="458" width="454" height="52" rx="0" fill="#A9CCC5"/></g>
+<text x="801" y="479" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="13" fill="#101418" font-weight="700" text-anchor="start">Month Grid</text>
+<text x="801" y="496" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#3F4650" font-weight="400" text-anchor="start">6/6 written</text>
+<circle cx="805" cy="520" r="3.5" fill="#A96A14"/>
+<text x="816" y="524" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#79818C" font-weight="400" text-anchor="start">Member Sprocket — in review  ·  2d</text>
+<text x="28" y="566" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="14" fill="#101418" font-weight="700" text-anchor="start">Enhancements</text>
+<rect x="325" y="554" width="222" height="38" rx="8" fill="#EEF3F2" stroke="#D5E0DD" stroke-width="1"/>
+<clipPath id="clip325-554"><rect x="325" y="554" width="222" height="38" rx="8" fill="#000"/></clipPath><g clip-path="url(#clip325-554)"><rect x="325" y="554" width="222" height="38" rx="0" fill="#6FAA9F"/></g>
+<text x="337" y="571" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="12" fill="#101418" font-weight="700" text-anchor="start">Sort by ripeness</text>
+<text x="337" y="585" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#3F4650" font-weight="400" text-anchor="start">1/1 written</text>
+<rect x="789" y="554" width="222" height="38" rx="8" fill="#EEF3F2" stroke="#D5E0DD" stroke-width="1"/>
+<clipPath id="clip789-554"><rect x="789" y="554" width="222" height="38" rx="8" fill="#000"/></clipPath><g clip-path="url(#clip789-554)"><rect x="789" y="554" width="222" height="38" rx="0" fill="#6FAA9F"/></g>
+<text x="801" y="571" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="12" fill="#101418" font-weight="700" text-anchor="start">Bulk relabel</text>
+<text x="801" y="585" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#3F4650" font-weight="400" text-anchor="start">1/1 written</text>
+<rect x="1021" y="554" width="222" height="38" rx="8" fill="#EEF3F2" stroke="#D5E0DD" stroke-width="1"/>
+<text x="1033" y="571" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="12" fill="#101418" font-weight="700" text-anchor="start">Export basket</text>
+<text x="1033" y="585" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="11" fill="#3F4650" font-weight="400" text-anchor="start">0/1 written</text>
+<text x="28" y="640" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="14" fill="#101418" font-weight="700" text-anchor="start">Support</text>
+<rect x="209" y="628" width="1266" height="38" rx="8" fill="#EEF3F2" stroke="#D5E0DD" stroke-width="1"/>
+<text x="221" y="645" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="12" fill="#101418" font-weight="700" text-anchor="start">14 tickets QA-ready or merged</text>
+<line x1="1068.1999999999998" y1="68" x2="1068.1999999999998" y2="688" stroke="#C4402F" stroke-width="2"/>
+<circle cx="1068.1999999999998" cy="68" r="4" fill="#C4402F"/>
+<text x="1076.1999999999998" y="84" font-family='"Helvetica Neue", Helvetica, Arial, sans-serif' font-size="10" fill="#C4402F" font-weight="700" text-anchor="start" letter-spacing="1">TODAY</text>
+</svg></div>
+        <figcaption><b>This is the end state.</b> A board nobody maintains. It rebuilds itself every weekday morning from what the team has actually done, so the answer to &ldquo;where are we&rdquo; is the same answer for everyone, at any hour, without anyone being asked. Teams, milestones and names here are invented for illustration.</figcaption>
+      </figure>
+
+      <div class="figures"><div class="fig tone-green"><p class="fig-n"><b>4</b><span>weeks</span></p><p class="fig-l">The longest any milestone may run. Bigger than that, and it gets broken down</p></div><div class="fig tone-violet"><p class="fig-n"><b>4</b><span>years</span></p><p class="fig-l">Since we adopted Shape Up, with a cooldown week after every cycle. Not one of our software engineers has quit</p></div><div class="fig tone-amber"><p class="fig-n"><b>−40%</b><span>2 months</span></p><p class="fig-l">Support backlog, since an agent started drafting fixes before an engineer opens the ticket</p></div><div class="fig tone-blue"><p class="fig-n"><b>20</b><span>from ~1,000</span></p><p class="fig-l">Open production errors left, after agents began working the list. Mostly noise cleared out, not bugs fixed</p></div></div>
+
+      <div class="sec-head"><span class="kick">Read on</span><hr /></div>
+      <div class="grid">
+      <a class="card tone-green" href="#talk">
+        <span class="card-top">
+          <span class="num" aria-hidden="true">01</span>
+          <span class="card-label">The talk</span>
+          <span class="go" aria-hidden="true">&#8594;</span>
+        </span>
+        <h3>The talk, step by step</h3>
+        <p>Every point from the stage, in order, with the detail there wasn’t time for: the six steps, the four-week rule, cooldown, and setting your own boundaries.</p>
+        <span class="card-meta">7 min read</span>
+      </a>
+      <a class="card tone-violet" href="#fundamentals">
+        <span class="card-top">
+          <span class="num" aria-hidden="true">02</span>
+          <span class="card-label">The rules</span>
+          <span class="go" aria-hidden="true">&#8594;</span>
+        </span>
+        <h3>Process fundamentals, after trying all of them</h3>
+        <p>What survived waterfall, Scrum, Kanban and Shape Up — and the reasoning, so you can reach different conclusions.</p>
+        <span class="card-meta">14 min read</span>
+      </a>
+      <a class="card tone-amber" href="#automations">
+        <span class="card-top">
+          <span class="num" aria-hidden="true">03</span>
+          <span class="card-label">What we built</span>
+          <span class="go" aria-hidden="true">&#8594;</span>
+        </span>
+        <h3>What we automated, and what it bought us</h3>
+        <p>Every item replaced work a person did, or was meant to do and didn’t. What each cost, and where it still gets things wrong.</p>
+        <span class="card-meta">8 min read</span>
+      </a>
+      <a class="card tone-blue" href="#github">
+        <span class="card-top">
+          <span class="num" aria-hidden="true">04</span>
+          <span class="card-label">The setup</span>
+          <span class="go" aria-hidden="true">&#8594;</span>
+        </span>
+        <h3>Setting GitHub up so nobody maintains a tracker</h3>
+        <p>The issue hierarchy, the board fields, and how pull requests connect back so progress can be derived instead of reported.</p>
+        <span class="card-meta">5 min read</span>
+      </a>
+      <a class="card tone-violet" href="#prompts">
+        <span class="card-top">
+          <span class="num" aria-hidden="true">05</span>
+          <span class="card-label">Take it with you</span>
+          <span class="go" aria-hidden="true">&#8594;</span>
+        </span>
+        <h3>Build your own</h3>
+        <p>Four prompts for Claude: a status page from your own GitHub, your own process rules, a pitch broken into milestones, and a cycle simulator.</p>
+        <span class="card-meta">copy and paste</span>
+      </a>
+      <a class="card tone-green" href="#questions">
+        <span class="card-top">
+          <span class="num" aria-hidden="true">06</span>
+          <span class="card-label">Ask me</span>
+          <span class="go" aria-hidden="true">&#8594;</span>
+        </span>
+        <h3>Ask me a question</h3>
+        <p>Send me a question on LinkedIn, during the talk or afterwards.</p>
+        <span class="card-meta">on LinkedIn</span>
+      </a></div>
+
+      <div class="feature">
+        <span class="ico" aria-hidden="true">&#9733;</span>
+        <div>
+          <h2>Were you in the room?</h2>
+          <p>Start with the talk, step by step. It has every point from the stage, in order, plus the detail there wasn&rsquo;t time for.</p>
+        </div>
+        <a class="btn" href="#talk">Read the talk</a>
+      </div>
+
+      <section class="contact" aria-labelledby="h-contact">
+        <h2 id="h-contact">Ask me something</h2>
+        <p>Send me a message on LinkedIn, during the session or afterwards. If you try any of this and it breaks, I would genuinely like to hear about that too.</p>
+        <div class="actions">
+          <a class="btn" href="#questions">Ask a question</a>
+          <a class="btn ghost" id="li" href="https://www.linkedin.com/in/emmamaylewis/" rel="noopener">Emma Lewis on LinkedIn</a>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <section class="view" id="view-questions" hidden aria-labelledby="h-ask">
+    <div class="wide">
+      <a class="back" href="#top">&#8592; All sections</a>
+      <section class="ask col" id="ask">
+        <div class="ask-head">
+          <span class="ico" aria-hidden="true">&#63;</span>
+          <div>
+            <h2 id="h-ask">Ask me something</h2>
+            <p class="lede">Questions from the room, and afterwards. Send me a message on LinkedIn and I&rsquo;ll answer it. If you try any of this and it breaks, I&rsquo;d like to hear about that too.</p>
+          </div>
+        </div>
+        <div class="actions"><a class="btn" id="li2" href="https://www.linkedin.com/in/emmamaylewis/" rel="noopener">Message me on LinkedIn</a></div>
+      </section>
+      <div id="faqlist" hidden></div>
+    </div>
+  </section>
+
+  <div class="wide">
+
+  <section class="view doc tone-green" id="view-talk" hidden aria-labelledby="h-talk">
+    <a class="back" href="#top">&#8592; All sections</a>
+    <header class="doc-head">
+      <span class="eyebrow">01 &middot; The talk</span>
+      <h2 id="h-talk">The talk, step by step</h2>
+      <p class="blurb">Every point from the stage, in order, with the detail there wasn’t time for: the six steps, the four-week rule, cooldown, and setting your own boundaries.</p>
+    </header>
+    <div class="prose"><p><em>Everything from the talk, in the order I gave it, with the detail I didn’t have time for on stage. We’ve run this process for a few cycles. This is what we’ve learned so far, not a finished answer.</em></p>
+<h2 id="the-thread-boundaries">The thread: boundaries</h2>
+<p>I love solving problems. I put on my detective hat, investigate what our users need, work out a solution with my designers and developers, and then see it work, in the usage data and in what customers tell me.</p>
+<p>The hard part has always been the pull in a million directions. Everything is a priority, so everything needs attention. That only got stronger as I moved into leadership.</p>
+<p>This talk is about boundaries. The old one disappeared, our process puts new ones back on purpose, and I had to learn to set my own.</p>
+<h2 id="the-boundary-that-disappeared">The boundary that disappeared</h2>
+<p>Engineers have said it since at least the 1960s: <strong>good, fast, cheap, pick two.</strong> The triangle is usually credited to Dr Martin Barnes, who drew time, cost and quality as a triangle for a project-cost course in 1969.</p>
+<p>For most of my career it was a real limit. Developer time was finite, so everyone accepted the trade-off. Product teams didn’t get pushback for choosing two.</p>
+<p>AI removed that limit. Building software is now dramatically faster and less expensive. The industry, and the people who invest in it, now expect good, fast <em>and</em> cheap.</p>
+<p>So if the old boundary is gone, what stops a team from burning itself out? Our answer was to build new boundaries into the process, on purpose.</p>
+<h2 id="a-well-oiled-machine">A well-oiled machine</h2>
+<p>With AI or without it, teams do better work when the process runs smoothly. When we adopted Shape Up, our work got better. Our CEO believes adopting Shape Up saved the company.</p>
+<p>We still had friction, especially between product managers and engineers about what a feature was supposed to do. So we looked at where AI could take that friction out, and we built our own process.</p>
+<h2 id="our-process-in-six-steps">Our process, in six steps</h2>
+<h3 id="1-investigate">1. Investigate</h3>
+<p>Document all the research from the investigation phase: user interviews, conversations from customer success and sales, and how people actually use the product today.</p>
+<h3 id="2-pitch">2. Pitch</h3>
+<p>Use Claude to make sure the pitch covers everything a builder needs:</p>
+<ul>
+<li>the problem to solve</li>
+<li>the solution</li>
+<li>the use cases to account for</li>
+<li>the technical risks and the UX risks</li>
+<li>what’s out of scope, and why</li>
+<li>the usage questions you’ll ask after launch, which tell you which tracking events to build in so you can measure adoption</li>
+<li>a QA checklist</li>
+</ul>
+<h3 id="3-put-all-of-it-in-one-place">3. Put all of it in one place</h3>
+<p>We keep the research, the pitch, the decisions and the reasons in GitHub, next to the code, so Claude can read all of it.</p>
+<h3 id="4-prototype">4. Prototype</h3>
+<p>Use Claude to build a high-fidelity, clickable prototype. Then use it to check there are no gaps between the design files, the pitch and the prototype.</p>
+<h3 id="5-milestones-the-lego-blocks">5. Milestones: the Lego blocks</h3>
+<p>Walk the developers who will build the feature through the prototype. Propose the milestones, then work them out together. <strong>The developers have the final say</strong> on the milestones and the order they build them in.</p>
+<p>The product manager’s job is priority:</p>
+<ul>
+<li>A <strong>must-have</strong> milestone is the core of the feature.</li>
+<li>A <strong>nice-to-have</strong> milestone is one the feature is still useful without.</li>
+</ul>
+<p>The prompt for breaking a pitch into milestones is in the prompts section.</p>
+<h3 id="6-build-in-cycles">6. Build in cycles</h3>
+<p>Developers build in four-week cycles, with one week of cooldown after every cycle.</p>
+<h2 id="the-rule-no-milestone-is-longer-than-one-four-week-cycle">The rule: no milestone is longer than one four-week cycle</h2>
+<p>This is the boundary on investment and scope. It lets you make investment decisions before the build and during it:</p>
+<ul>
+<li>About how long will this take? If it’s more than four weeks, is it worth it?</li>
+<li>If competing priorities mean we only have two weeks, we spend two weeks and build the highest-priority milestones, the ones that complete the core of the feature.</li>
+</ul>
+<p>If a milestone looks bigger than four weeks, it isn’t one milestone yet. Break it down further.</p>
+<h2 id="we-are-not-robots">We are not robots</h2>
+<p>After every four-week cycle comes a cooldown week. We took it from Shape Up. Cooldown is for learning, experiments, dependency updates, bug fixes and small improvements. Each person chooses their own adventure before the next cycle starts.</p>
+<p>This is the boundary I care about most. Humans need downtime. You can’t push, push, push without burning out, and AI makes it very tempting to push.</p>
+<p>Software has had the highest employee turnover of any industry, according to LinkedIn’s analysis of its member data. Since we adopted Shape Up four years ago, not one of our software engineers has quit. I can’t prove the process is the whole reason. But our developers have told me the cycle and the cooldown make them happy, and that they could never go back to Scrum.</p>
+<h2 id="what-one-place-gave-us">What one place gave us</h2>
+<p><strong>No more “it wasn’t in the design.”</strong> Before, we’d reach QA and find that something important hadn’t been built. The answer was always that it wasn’t in the designs, even though it was in the pitch. With the pitch, the designs and the prototype checked against each other, those misses stopped.</p>
+<p><strong>Validation before building.</strong> Prototypes are now fast to make, so we walk users through a clickable prototype in a research session and check that it solves their problem before anyone builds it.</p>
+<p><strong>Help articles, written for us.</strong> With the problem, use cases and decisions in one place, help centre articles can be drafted automatically.</p>
+<p><strong>The QA checklist runs itself.</strong> The checklist in the pitch now runs automatically as part of our pipeline.</p>
+<h2 id="the-status-page">The status page</h2>
+<p>Raise your hand if you’ve been in a weekly check-in meeting that you didn’t find helpful.</p>
+<p>When I was a developer, I didn’t like sprint planning or stand-ups, because they took time away from building. As a product manager I feel the same, because they take time away from thinking.</p>
+<p>I believe people would rather focus on doing the work, and would prefer not to report on the status of it every week.</p>
+<p>So I built a status page. It reads everything from GitHub every day and shows every team’s work across our four-week cycles. Every pull request links itself back to its milestone, so the page stays true without anyone filing anything. Nobody maintains it.</p>
+<p>When something runs past the four-week line, the page shows it. That isn’t a failure of the page. It’s what starts the honest conversation about whether to pivot, cut scope or extend.</p>
+<p>The prompt to build your own is in the prompts section, along with a simulator for trying out your own cycle rules.</p>
+<h2 id="more-ways-to-use-ai">More ways to use AI</h2>
+<p><strong>A draft agent for support tickets.</strong> It investigates a support ticket and opens a draft fix before an engineer sees it. The engineer still decides. Since we started working this way, our support backlog is down about 40% in two months, and our open production errors went from about a thousand to about twenty. Most of that drop was clearing out noise, not a thousand bugs fixed. The error tracker became something people actually open.</p>
+<p><strong>Asking Claude how people use what you build.</strong> I bring three things every time:</p>
+<ol>
+<li><strong>What I want to understand.</strong> For example: do people with view-only access really explore the product, or do they only open what they’ve been notified about?</li>
+<li><strong>The time range.</strong> For example: the last 12 months by month, and the last 5 years by year, so we can compare the trends. A clear range lets Claude write an accurate query.</li>
+<li><strong>How to analyse it.</strong> For example: count a visit as notification-driven if an email went out in the 48 hours before it, for that same item.</li>
+</ol>
+<p>Write the question this way and the answer comes back in a form you can actually act on.</p>
+<h2 id="four-things-to-take-home">Four things to take home</h2>
+<ol>
+<li><strong>Put all your context in one place your AI can read.</strong></li>
+<li><strong>Cap every piece of work at four weeks.</strong></li>
+<li><strong>Build in a cooldown.</strong> We are not robots.</li>
+<li><strong>Stop reporting status by hand.</strong></li>
+</ol>
+<h2 id="set-your-own-boundaries">Set your own boundaries</h2>
+<p>Here’s the truth. AI has made my team better and faster, and we do more than ever. It hasn’t stopped me being pulled in a million directions. If anything, it’s spread me thinner, because it’s so tempting to use it for everything. Like a cook with too many pots on the stove.</p>
+<p>Just because AI can help you do more doesn’t mean it costs you no time. Your time and your brain are valuable.</p>
+<p>I used to be a “yes” girl. Now I set real expectations. Instead of “Yes, when do you need it by?”, I say: “Yes, I’m happy to help with that when I have bandwidth in two weeks, once I’m back from the conference.” If that timeline doesn’t work, it becomes a conversation about priorities, not a reason for me to burn out.</p>
+<p>Setting boundaries is the only way I’ve avoided burnout as I’ve grown into bigger leadership roles. We built boundaries into our process, because we are not robots. Neither are you. Set yours.</p></div>
+    <a class="back back-end" href="#top">&#8592; All sections</a>
+  </section>
+  <section class="view doc tone-violet" id="view-fundamentals" hidden aria-labelledby="h-fundamentals">
+    <a class="back" href="#top">&#8592; All sections</a>
+    <header class="doc-head">
+      <span class="eyebrow">02 &middot; The rules</span>
+      <h2 id="h-fundamentals">Process fundamentals, after trying all of them</h2>
+      <p class="blurb">What survived waterfall, Scrum, Kanban and Shape Up — and the reasoning, so you can reach different conclusions.</p>
+    </header>
+    <div class="prose"><p><em>We have run this for one cycle. Some of it is three weeks old. Everything below is what we have learned, not what we have proven.</em></p>
+<p><em>For calibration: a handful of small product teams on one codebase, shipping to enterprise customers. If you are smaller than that, turn several of these dials down, and read the last section first.</em></p>
+<p>Every process we adopted eventually eroded. Waterfall, Scrum, Kanban, and most recently Shape Up. Each one worked for a while and then quietly stopped working, usually because keeping it alive cost more attention than anyone had.</p>
+<p>When we finally sat down to rebuild, we wrote down what was actually going wrong rather than which framework to try next. Three things:</p>
+<ol>
+<li><strong>Work entered a cycle bigger than the cycle could build</strong>, and once it had started there was no mechanism to course correct. Projects ground on, ran over, carried over, and converged on review and QA in a pile-up at the end.</li>
+<li><strong>Decisions made during a cycle were hard to track.</strong> Specs went stale, design and implementation drifted apart, and decisions made in side conversations evaporated.</li>
+<li><strong>It was hard to respond to customers.</strong> Shifting priorities left shaping unfinished, resourcing became a perpetual puzzle, and a long cycle offered too few decision points at which to negotiate a change.</li>
+</ol>
+<p>None of that is a discipline problem, and that turned out to be the important insight. People skip the retro, let the board go stale and stop updating the tracker for the same reason every time. The step costs them something now and pays off later, for somebody else. Set against real work with a real deadline, that step loses. Every time.</p>
+<p>So the question we ended up asking of any rule was not “is this a good practice.” It was:</p>
+<blockquote><strong>What does this cost the person who has to do it, every time, forever?</strong></blockquote>
+<p>If the answer is more than a few seconds, the rule will not survive contact with a busy month. You either make it cheaper, automate the cost away, or don’t make the rule at all. Everything below follows from that.</p>
+<hr />
+<h2 id="what-we-took-and-what-we-left">What we took, and what we left</h2>
+<p><strong>From waterfall we kept the belief that thinking before building is not waste.</strong> The industry over-corrected on this one. A specification that resolves the hard questions early saves far more time than it costs. What we left behind is the idea that you can resolve them <em>all</em> before you start, and the assumption that a plan surviving contact with reality is a sign of good planning rather than of low ambition.</p>
+<p><strong>From Scrum we kept nothing structural, which genuinely surprised us.</strong> Sprints, story points, velocity and planning poker are all machinery for predicting how long work will take. We replaced the lot with a single question put to an experienced engineer, which takes minutes rather than hours. We have not proved that question is more accurate — our own board later showed four milestones at double their cap — but it is wrong far more cheaply, and it is wrong where we can see it inside a cycle instead of a quarter. The standup we kept in spirit and abolished in practice: the information is worth having, the meeting is not.</p>
+<p><strong>From Kanban we kept work-in-progress limits, which we think is its real contribution.</strong> One team works one thing at a time. A team split across two efforts has no clear answer to “what is the most important thing you could be doing right now.” What we left is continuous flow, because without a rhythm there is never a natural moment to stop and reconsider.</p>
+<p><strong>From Shape Up we kept the most, and changed the thing at its centre.</strong> Fixed time with variable scope is correct and we still run on it. Cycles, cooldown and the thin vertical slice early are all good ideas. We moved the betting table so that it meets once over a whole feature breakdown rather than project by project, and we abandoned the advice to start a cycle from a rough marker sketch and work the rest out as you go. That never worked for us, because not every problem needs the same amount of design to solve, and discovering which one you have after the build team has started is expensive.</p>
+<hr />
+<p>Each rule below starts with the pain, because the pain is the part that travels between teams. Our answer to it might not be yours.</p>
+<h2 id="sizing-the-work">Sizing the work</h2>
+<h3 id="1-one-size-limit-not-an-appetite-per-project">1. One size limit, not an appetite per project.</h3>
+<p><strong>The pain.</strong> You decide a problem is worth six weeks, shape a solution to fit, and then spend the whole project negotiating scope against a number somebody invented in a meeting. Everyone can feel the number is arbitrary, which makes every trade-off argument slightly unreal.</p>
+<p>We should be straight about this: the size limit is still a number somebody invented. We just invented it once. Four weeks, applied to everything, so nobody spends a project arguing against a budget that was set for that project specifically.</p>
+<p>So: define the smallest thing that can stand alone and ship. If it is bigger than four weeks, it is not one thing yet, and it gets broken down further. The sentence is “this isn’t a single piece of work,” never “make it fit.”</p>
+<p>The investment conversation still happens, over the whole breakdown, before anyone builds. This feature is six milestones — about seven months on our clock once cooldown is counted. Is the problem worth that? If not, reshape it. Seven months is a harder question than a six-week budget, which is exactly why it is the better one.</p>
+<h3 id="2-validate-before-you-build">2. Validate before you build.</h3>
+<p><strong>The pain.</strong> All the feedback arrives at the end. You think you are done, the first real look happens, and now it is rework. That is stress for the person and delay for the project, and it is the most expensive way to learn anything.</p>
+<p>So validation moved upstream, in two forms. A <strong>design prototype</strong> asks whether this solves the problem at all. A <strong>functional prototype</strong> asks whether it works end to end inside the real product. The line between them is platform context, not polish.</p>
+<p>Three things make it work. Functional prototyping belongs to shaping, not build, because that is when feedback is still cheap to act on. An engineer from the build team takes part, deliberately, so nobody is handed a finished body of work to make shippable. And it is time boxed: if you cannot get there inside the box with the tools you have, move the validation into the first slice of the build instead of stretching shaping.</p>
+<p><strong>What it costs:</strong> a chunk of shaping time, up front, on work that might not proceed. That is the point of it.</p>
+<p>This is the rule AI changed most, and not in the direction people expect. A functional prototype used to be too expensive to build, so we skipped the step the framework called central and told ourselves we were following it. Now it is cheap enough to actually do.</p>
+<h3 id="3-ship-the-complete-thing-don-t-shave-it">3. Ship the complete thing. Don’t shave it.</h3>
+<p><strong>The pain.</strong> You cut the nice-to-haves to protect the budget. Then they come back, as support tickets, complaints, or gaps someone names in the first week.</p>
+<p>We went back through the things we had cut and found most of them had returned. Be honest about that method: a cut that stays cut leaves no trace, so we were only ever going to find the ones that came back. It was enough to change our minds and not enough to prove a rule.</p>
+<p>But it did change our minds. When building gets cheaper, the time you get back is better spent on finishing the thing than on starting the next one, because an incomplete release generates its own follow-up work.</p>
+<p><strong>The caution belongs next to the rule</strong>, because it came from our own engineers and it is correct. This is not a licence for infinite scope. The risk is swinging from “cut everything inessential” to “anything goes,” which throws away a constraint that was doing real work. The discipline moved from <em>cutting</em> to <em>defining what complete means</em> — and that definition has to come from what you learned in the prototype and from customers, rather than from whoever spoke last.</p>
+<p>We agreed we needed written criteria for “complete.” We never wrote them. That gap is still open.</p>
+<h2 id="running-the-cycle">Running the cycle</h2>
+<h3 id="4-commitment-is-per-milestone-never-per-feature">4. Commitment is per milestone, never per feature.</h3>
+<p><strong>The pain.</strong> You are nine weeks into something that everyone privately suspects isn’t working, and nobody will say so, because stopping would waste what has already been spent.</p>
+<p>Every completed milestone is a decision point. The default is to carry on, but stopping is always available. And because each milestone stands alone and ships, stopping early isn’t waste. It is a feature that went as far as it was worth taking.</p>
+<p><strong>What it costs:</strong> almost nothing to adopt, and it removes the conversation nobody wants to start.</p>
+<h3 id="5-everyone-shares-one-clock">5. Everyone shares one clock.</h3>
+<p><strong>The pain.</strong> Every cross-team conversation opens with five minutes of working out where everybody is. One team is mid-sprint, another is in planning, a third is heads-down before a deadline. Nobody can get a straight answer about when anything could start.</p>
+<p>So: four build weeks, then one cooldown week. When the clock is shared, the answer to “where is everyone” is already known.</p>
+<p><strong>On paper that is about ten recovery weeks a year.</strong> In practice an extension under rule 7 spends the cooldown week, and our own engineers tell us most of them are not getting cooldown in reality. We think that is the clearest evidence we have that the circuit breaker is not being enforced, and we would rather say so than quote the ten.</p>
+<p><strong>We are not certain the shared clock is right, and you might reasonably choose the opposite.</strong> Sharing it buys coordination. Staggering it buys a smooth flow of work into review and QA instead of every team arriving at the same moment, and it gives you a natural rotation for support and small enhancements. We have argued both sides and not settled it. If your teams depend on each other constantly, share the clock. If your real bottleneck is review and QA capacity, stagger it.</p>
+<h3 id="6-no-up-front-estimates-a-question-instead">6. No up-front estimates. A question instead.</h3>
+<p><strong>The pain.</strong> Hours of estimation ceremony produce a number that is wrong anyway, and which everyone downstream then treats as a promise.</p>
+<p>We don’t estimate. Before a milestone starts, an experienced engineer reads the plan and answers one question: is this conservatively achievable inside the window, to the definition of done? The plan is also read by the people whose code it touches, so risk surfaces before it is baked in.</p>
+<p><strong>We got the shape of this wrong the first time.</strong> We made it an approval gate, and the gate became a queue. Work waited on one or two senior people who were already the busiest we had. We dropped the gate and kept the question. A check that informs a team is worth having. A check that blocks them relocates the bottleneck.</p>
+<h3 id="7-the-circuit-breaker">7. The circuit breaker.</h3>
+<p><strong>The pain.</strong> A milestone hits “nearly done” in week four and stays there. Nobody wants to be the person who says stop, so it takes one more week. The next thing behind it gets squeezed, and by the end of the quarter three teams are late for a reason nobody can name.</p>
+<p>At the end of the build weeks, if a milestone isn’t done:</p>
+<ul>
+<li><strong>Less than a week of work left.</strong> Extend it once, which is where the five-week ceiling comes from — four weeks to size the work, one extension available. Five is the hard stop.</li>
+<li><strong>More than a week left.</strong> Stop. Define a new milestone for what remains, and reshuffle what comes after.</li>
+</ul>
+<p>The product manager decides, informed by the team, and the reasoning gets written down.</p>
+<p>This is the rule people break, and it is the one most worth holding — which we know because we broke it. Our own dashboard eventually showed four milestones running eight to eleven weeks against that five-week ceiling, and the breaker had never once fired. A rule you don’t enforce is a preference. It also told us something we had missed: we had been sizing milestones for two-person teams, our teams had got smaller, and nobody had resized anything.</p>
+<h3 id="8-done-means-qa-ready-in-a-running-environment">8. Done means QA-ready in a running environment.</h3>
+<p><strong>The pain.</strong> When “done” means merged, everything after merge becomes somebody else’s problem. Review queues, QA handoffs and deployment pile up outside anyone’s estimate, and the work looks finished long before anyone can use it.</p>
+<p>Done means running somewhere a person can use it. That one word pulls review and the QA handoff inside the estimate, where they can be seen.</p>
+<p><strong>What it costs:</strong> nothing to a person, and a great deal to your infrastructure. We could only make this change after per-change preview environments existed. A definition of done your tooling cannot deliver is just a way of making everyone late.</p>
+<h3 id="9-finishing-early-earns-more-progress-not-more-process">9. Finishing early earns more progress, not more process.</h3>
+<p><strong>The pain.</strong> A team finishes early and quietly fills the time, because spare capacity looks like a planning error and nobody wants to be caught with it.</p>
+<p>If a milestone lands early, the team pulls the next thing. No filler, no invented scope, no “while we have time, let’s also.”</p>
+<p>The obvious collision, since a shared clock means the cycle ends when it ends: a milestone pulled forward starts its own four-week clock rather than inheriting whatever is left of this one, and the circuit breaker applies to it at the end of <em>its</em> window. In the last week of a cycle we would rather a team took support and QA work than started something it cannot finish.</p>
+<h2 id="keeping-it-honest">Keeping it honest</h2>
+<h3 id="10-one-owner-per-artifact-surface-disagreement-don-t-resolve-it-quietly">10. One owner per artifact. Surface disagreement, don’t resolve it quietly.</h3>
+<p><strong>The pain.</strong> You are three weeks in when someone notices the spec and the design assume different things, and nobody can say which was decided and which was drafted.</p>
+<p>Our first instinct was a single source of truth, and it did not work, because these artifacts do genuinely different jobs and collapsing them loses information. What worked instead: <strong>every artifact has one owner and one job, and it is authoritative for that job and nothing else.</strong> The spec owns the problem and the decisions. The design owns the intended experience. The issue tree owns the state of the work.</p>
+<p>And when two of them disagree, say so out loud rather than quietly picking one. A contradiction between artifacts is almost always a decision nobody actually made, and resolving it silently means one person makes that decision alone, by accident.</p>
+<p><strong>What it costs:</strong> a few seconds of naming the conflict at the moment you trip over it.</p>
+<h3 id="11-exceptions-are-first-class">11. Exceptions are first class.</h3>
+<p><strong>The pain.</strong> Urgent work arrives that cannot wait for the next planning cycle. The process has no legitimate way to take it, so it gets broken quietly. After that, nobody is quite sure what the real process is any more.</p>
+<p>A valve nobody can find is not a valve, so ours is specific:</p>
+<ul>
+<li><strong>Anyone can ask for it</strong>, and the product manager for that team decides. It does not go up a chain.</li>
+<li><strong>It gets written on the milestone it interrupts</strong>, in one line: what came in, who asked, and what it displaced.</li>
+<li><strong>The interrupted milestone’s clock keeps running.</strong> We considered pausing it and decided against, because a pausable clock is a clock that always gets paused. What the interruption buys you instead is a stronger case at the circuit breaker, where the written line is the evidence.</li>
+<li><strong>Using it is not a failure</strong>, and nobody has to justify it in a retro. The moment it feels like a confession, people stop using it and start doing the thing quietly again.</li>
+</ul>
+<hr />
+<h2 id="where-this-is-still-unsettled">Where this is still unsettled</h2>
+<p>A process document that only contains what worked is a sales brochure.</p>
+<p><strong>The strongest objection came from inside our own leadership group.</strong> A small team works better with fewer guardrails, and it is possible to over-engineer a process for a team that does not need one. That objection is correct and we have not acted on it. Our job now is to work out which of these dials to turn down a few clicks, rather than to defend the whole system.</p>
+<p><strong>Documentation drifts even when the process doesn’t.</strong> We changed several of these rules in practice months before the written version caught up, which means anyone reading it was being told something untrue. Put a review of your own rules in the calendar, because nothing else will make it happen.</p>
+<p><strong>We still don’t know what “complete” means.</strong> See rule three. In the meantime the definition sits with whoever is most persuasive in the room.</p>
+<p><strong>Our inference job has no undo.</strong> A job that guesses where work belongs and writes the answer needs a way to tell an inferred link from one a person made, and a way to reverse it in bulk when it gets a run of them wrong. Ours has neither yet. We limited the damage by making it refuse to act unless one answer clearly wins, which is a precision story rather than a recovery story.</p>
+<p><strong>We have no policy for abandoned agent drafts.</strong> When an agent opens draft pull requests that nobody picks up, they sit. At the last count roughly two thirds of them were still open. We have not decided whether they expire, get closed on a timer, or accumulate forever.</p>
+<p><strong>Speed has a ceiling nobody has found yet.</strong> The expectation of how fast a team can deliver keeps rising, and it does not come back down. There is a real question, which we have not answered, about whether a process built to absorb that pace is a process or a faster treadmill. The last time we chased speed without a structure around it we shipped a great deal quickly, created technical debt we are still paying off, and burned out the team.</p>
+<hr />
+<h2 id="where-to-start-if-you-take-one-thing">Where to start, if you take one thing</h2>
+<p>Take rule eight. Change your definition of done to mean running software a person can use, and change nothing else for a cycle.</p>
+<p>It is the smallest change with the largest blast radius. It exposes every place your work was secretly unfinished, it moves review and QA inside the estimate where they become visible, and it does all of that without asking anyone to adopt a methodology or attend a new meeting.</p>
+<p>Then come back to the question at the top. For every rule you already have, ask what it costs the person who has to follow it, every single time. The ones that cost real effort are the ones quietly dying, and those are your candidates for automating the cost away.</p></div>
+    <a class="back back-end" href="#top">&#8592; All sections</a>
+  </section>
+  <section class="view doc tone-amber" id="view-automations" hidden aria-labelledby="h-automations">
+    <a class="back" href="#top">&#8592; All sections</a>
+    <header class="doc-head">
+      <span class="eyebrow">03 &middot; What we built</span>
+      <h2 id="h-automations">What we automated, and what it bought us</h2>
+      <p class="blurb">Every item replaced work a person did, or was meant to do and didn’t. What each cost, and where it still gets things wrong.</p>
+    </header>
+    <div class="prose"><p><em>We have run this for one cycle. Some of it is three weeks old, and one item below is still sitting in review. This is what we have learned, not what we have proven.</em></p>
+<p>Every item here started as work a person did, or was supposed to do and didn’t. None of it replaced a decision. The test each time: <strong>does this task need judgment?</strong> If it did, a person kept it. If it didn’t, it went to a machine.</p>
+<p>Grouped by what they gave back.</p>
+<hr />
+<h2 id="time-back-for-engineers">Time back for engineers</h2>
+<h3 id="an-agent-drafts-the-fix-before-an-engineer-sees-the-ticket">An agent drafts the fix before an engineer sees the ticket</h3>
+<p><strong>What it replaced.</strong> A developer reading a support ticket cold, reproducing the bug, finding the code, and only then deciding whether it was worth their afternoon.</p>
+<p><strong>What it does.</strong> Support tickets go to an agent first. It investigates, and where it can, opens a draft pull request with a proposed fix attached to the ticket. A developer opens the ticket and finds the reproduction and a candidate fix already there. They decide whether it is right. Over one cycle it opened 53 draft pull requests; 19 have merged.</p>
+<p><strong>What it cost.</strong> The drafts are noise until someone reviews them, and most sit open. We had to teach our own reporting to ignore bot drafts, or every dashboard we built said the team had a hundred things in flight. We still have no policy for the other 34: whether they expire, get closed on a timer, or accumulate forever. That question is open.</p>
+<p><strong>Worth knowing.</strong> The fixes it lands are a bonus. What it really does is finish the triage before a person arrives, and triage was the expensive, boring part.</p>
+<h3 id="a-standing-sweep-of-production-errors">A standing sweep of production errors</h3>
+<p><strong>What it replaced.</strong> An error tracker that everyone had stopped opening because the backlog was too big to face.</p>
+<p><strong>What it does.</strong> Agents work the error report systematically rather than waiting for someone to volunteer. Over one cycle our open error count went from roughly a thousand to about twenty.</p>
+<p><strong>Read that number carefully</strong>, because we nearly published it without the caveat. Most of that movement was triage rather than repair. A long tail of the thousand was noise and got closed. What changed is not that a thousand bugs were fixed. It is that the tracker became something a person opens.</p>
+<p><strong>What it cost.</strong> Mostly judgment about what not to fix. An agent will earnestly fix noise forever if you let it.</p>
+<hr />
+<h2 id="time-back-for-product">Time back for product</h2>
+<h3 id="a-cycle-board-that-nobody-maintains">A cycle board that nobody maintains</h3>
+<p><strong>What it replaced.</strong> The weekly status meeting, and the status updates that fed it.</p>
+<p><strong>What it does.</strong> It regenerates every weekday morning from GitHub and publishes itself. Rows are teams, columns are weeks. Each block is a milestone, filled by how much of the work is written, with its start date, what stage each pull request is at, and how long it has sat there. Nobody updates it. There is no field to forget.</p>
+<p><strong>What it cost.</strong> About a week of building, then a month of being subtly wrong in ways that mattered. See the honest notes at the end.</p>
+<p><strong>Worth knowing.</strong> The meeting we stopped having is the small prize. The real one is that “where are we” now has the same answer for everyone, at any hour, without anyone being asked.</p>
+<h3 id="the-hierarchy-files-itself">The hierarchy files itself</h3>
+<p><strong>What it replaced.</strong> Asking engineers to link their pull requests to a milestone, which is the kind of step that gets skipped when you are finishing something at 6pm.</p>
+<p><strong>What it does.</strong> A daily job finds work that is not connected to a milestone and works out where it belongs, scoring each candidate on who has been landing work under that milestone lately, whether the change touches the same area of the codebase, and whether it uses the same language. It writes only when one milestone wins clearly. It also moves a milestone to In Progress once work on it has started, rather than waiting for someone to drag a card.</p>
+<p><strong>What it cost.</strong> Two days, and a lot of care about when <em>not</em> to act. Everything it refuses to decide goes to a list a person reads. It has no undo and no audit trail, so an inferred link is indistinguishable from one a person made. That is a gap, not a feature.</p>
+<p><strong>Worth knowing, and this is the honest version.</strong> We measured the problem before building anything: 12 of 100 recent pull requests rolled up to a milestone. We measured again last week, with the inference job running: 16 of the last 100. Narrow that to work a person wrote and pushed out of draft, so no bots and no agent drafts in the denominator, and it is 15 of 53.</p>
+<p>Under a third, however you count it. It is moving, slowly. The change that would move it most is a nudge at the moment someone opens a pull request, and that one is written and still sitting in review, which is its own joke.</p>
+<hr />
+<h2 id="time-back-at-the-boundary-between-them">Time back at the boundary between them</h2>
+<h3 id="the-qa-checklist-compiles-into-the-pipeline">The QA checklist compiles into the pipeline</h3>
+<p><strong>What it replaced.</strong> A QA checklist written into the product spec, which then lived in a document nobody opened during the build.</p>
+<p><strong>What it does.</strong> The checklist from each spec becomes part of CI. The pipeline drives the real app in a browser, walks the checklist, and attempts to fix both the bugs it finds and the checklist items that fail.</p>
+<p><strong>What it cost.</strong> The specs had to get more precise, because a vague acceptance criterion produces a vague test. We did not plan that, and it is the better half of the trade.</p>
+<p><strong>Worth knowing.</strong> The checklist did not get followed more because we asked harder. It got followed because following it stopped being a separate act.</p>
+<h3 id="guardrails-at-the-moment-of-work">Guardrails at the moment of work</h3>
+<p><strong>What it does, or will.</strong> When a pull request does not connect to anything, it gets a single comment saying so and a status check naming the milestone it belongs to, or “none.” The check is always green and never blocks a merge.</p>
+<p><strong>What it cost.</strong> Almost nothing to build. The restraint was the work: an earlier version would have blocked merges, which turns a helpful nudge into something people route around.</p>
+<p><strong>Where it actually is.</strong> Written, tested, open in review, not merged. Which makes it a fair illustration of the thing this whole document is about. The last mile of a change that helps everybody, but that nobody has a deadline for, is the mile that does not get walked.</p>
+<h3 id="the-help-centre-article-writes-itself">The help centre article writes itself</h3>
+<p><strong>What it replaced.</strong> Someone starting a help centre article from a blank page, weeks later, with less context than the team that built the thing.</p>
+<p><strong>What it does.</strong> The article is generated from the product spec. The spec already holds the problem, the use cases, and the decisions and why they were made. That is most of a customer-facing article already, written by the person who understood the feature best, at the moment they understood it best.</p>
+<p><strong>Worth knowing.</strong> Every hour spent on a spec comes back here. Documentation stops being a separate act and becomes a by-product of work already done.</p>
+<h3 id="preview-environments-on-a-label">Preview environments on a label</h3>
+<p><strong>What it does.</strong> A label plus a green build deploys a working environment for that change. QA runs against real software throughout the cycle, at the pull request level, rather than in a crunch at the end.</p>
+<p><strong>What it cost.</strong> The most expensive thing on this page by a distance, and the only one that is mostly infrastructure rather than prompting. Environments have to be cheap to create, seeded with data somebody can actually test against, and torn down automatically. We had to pay for all three before the process change below was possible.</p>
+<p><strong>Worth knowing.</strong> This is what let our definition of done become “QA-ready in a preview environment” instead of “merged.” The automation came first; the process change was only possible afterwards.</p>
+<hr />
+<h2 id="what-this-costs-to-keep">What this costs to keep</h2>
+<p>We ask of every process rule what it costs the person who has to follow it, every time, forever. It would be dishonest not to ask the same of our own tooling.</p>
+<p><strong>Someone maintains the generator.</strong> The board reads GitHub’s API. When a field is renamed or a schema changes, it breaks, and it breaks silently unless you make it fail loudly. Build that in on day one.</p>
+<p><strong>Someone reads the list.</strong> The inference job’s entire safety model is that anything ambiguous goes to a human. That human is currently one person. If they stop reading it, the safety model is gone and nothing announces it.</p>
+<p><strong>The model spend is real and recurring</strong>, on the error sweep and the support triage especially. It is small against an engineer’s time, it is not nothing, and it scales with the size of the backlog rather than the size of the team.</p>
+<p>By our own test, the two items above with a named human in them are the ones at risk of quietly dying.</p>
+<hr />
+<h2 id="the-honest-part">The honest part</h2>
+<p><strong>Automated confidence is not accuracy.</strong> Our board told us a milestone was a third finished and forecast six more weeks of work. The engineer who built it said it was done and moving through review. He was right. The board was counting what had passed QA, and it could not tell “not written yet” from “waiting on a reviewer” — both looked like zero. We changed it to count written work, meaning merged, or open and out of draft, and to break the review and QA stages out underneath. A person in a status meeting would have caught that in one sentence. It took us a month.</p>
+<p><strong>Automation surfaces problems, it doesn’t solve them.</strong> Ours showed four milestones running eight to eleven weeks against a five-week ceiling. The cause was not discipline. We had sized milestones for two-person teams, our teams got smaller, and nobody resized them. No tool fixes that. It just stopped us being able to not notice.</p>
+<p><strong>The tooling doesn’t change scope on its own.</strong> A faster team shows up in throughput first. We were deliberate about that, because the temptation to treat AI as a reason to commit to more is strong, and it is how you end up back where you started, with a process nobody follows.</p></div>
+    <a class="back back-end" href="#top">&#8592; All sections</a>
+  </section>
+  <section class="view doc tone-blue" id="view-github" hidden aria-labelledby="h-github">
+    <a class="back" href="#top">&#8592; All sections</a>
+    <header class="doc-head">
+      <span class="eyebrow">04 &middot; The setup</span>
+      <h2 id="h-github">Setting GitHub up so nobody maintains a tracker</h2>
+      <p class="blurb">The issue hierarchy, the board fields, and how pull requests connect back so progress can be derived instead of reported.</p>
+    </header>
+    <div class="prose"><p><em>We have run this for one cycle. This is what we have learned, not what we have proven.</em></p>
+<p>The goal is narrow. The state of the work should be as close to a by-product of doing the work as you can get it, so that nobody has a second job keeping a tracker honest.</p>
+<p>Everything below is native GitHub. No integrations, no sync.</p>
+<hr />
+<h2 id="the-hierarchy-is-four-issue-types">The hierarchy is four issue types</h2>
+<p>GitHub supports custom issue types and sub-issues. That is a real hierarchy, held by the tool, not a convention people have to remember. Define four types:</p>
+<ul>
+<li><strong>Epic.</strong> A complete strategic thought. It may span many features.</li>
+<li><strong>Feature.</strong> An end-to-end solution to a concrete need. This is the unit you prioritize.</li>
+<li><strong>Milestone.</strong> The smallest increment of a feature that can stand alone and ship. Ours are sized at four weeks, with one extension week available, so five is the hard ceiling.</li>
+<li><strong>Slice.</strong> The unit engineering sequences, reviews and merges. It is defined in technical terms and must be safe to merge on its own. Call the GitHub issue type whatever you like; ours is called Task, and every other sentence here says slice.</li>
+</ul>
+<p>Every issue has exactly one parent, all the way up. A slice is a sub-issue of its milestone, directly or nested under another slice. Both count, because association is what you are reading, not depth.</p>
+<p>Give each type an issue template that sets the type and lays out the body sections. Creating the record is then the same act as filing the issue.</p>
+<p>Three levels of nesting is enough: milestone, slice, and a slice under a slice. If you need a fourth, the milestone is too big.</p>
+<hr />
+<h2 id="why-sub-issues-and-not-labels">Why sub-issues and not labels</h2>
+<p>We tried labels first. A label per feature, another per milestone, applied to issues and pull requests. On paper it rolls up neatly.</p>
+<p>We checked after several months. Across the entire repository those labels had reached two issues and zero pull requests. One of the two was malformed. The sub-issue trees, meanwhile, were fully populated, because breaking a milestone into sub-issues is how engineers plan anyway.</p>
+<p>The rule that came out of it: <strong>never encode a relationship in a label when the tool already models that relationship.</strong> A label is a hand-maintained copy of the truth, and the copy loses. It also flattens the structure. A label cannot tell you that a slice sits under another slice.</p>
+<p>Keep one label, if your repository is shared with other teams: a membership marker, so your tooling can tell your work from theirs. It is the only label doing a job GitHub does not model.</p>
+<hr />
+<h2 id="two-board-fields">Two board fields</h2>
+<p>Put every issue on one Projects v2 board. Two fields carry the weight.</p>
+<h3 id="status">Status</h3>
+<p>Each column must have one meaning nobody can argue about:</p>
+<ul>
+<li><strong>Backlog / Prioritized.</strong> Not started. Ranked.</li>
+<li><strong>Shaping.</strong> The solution is being defined.</li>
+<li><strong>Ready.</strong> Shaped, the plan read by an experienced engineer, waiting for a team to pick it up.</li>
+<li><strong>In Progress.</strong> Code is being written.</li>
+<li><strong>In Review.</strong> Written. Waiting on a reviewer.</li>
+<li><strong>In QA.</strong> The definition of done is met and it is running where a person can use it.</li>
+<li><strong>Releasing / Released.</strong></li>
+</ul>
+<p>Splitting In Progress, In Review and In QA is the part people skip, and it is the part that pays. Without the split you cannot tell “not written yet” from “waiting on a reviewer.” Both look like no progress. Our board made exactly that mistake and told us a milestone was a third finished when the engineer had written all of it.</p>
+<h3 id="team">Team</h3>
+<p>A single select, one option per team, set on the feature. Then run a job that gives any item with no team the value of its nearest ancestor. Features, milestones and slices land in the same lane without anyone setting the field by hand.</p>
+<p>Two things not to add. An estimate field, if you do not estimate, because an empty field invites someone to fill it. Repo-wide auto-add, if other teams share the repository, because their work joins your board. Add items from your own tooling instead.</p>
+<hr />
+<h2 id="pull-requests-connect-themselves">Pull requests connect themselves</h2>
+<p>This is the link that turns the structure into a progress report.</p>
+<p>A pull request that says <code>Closes #123</code> is attached to that slice by GitHub. You can then read it from either end in one GraphQL query: <code>closedByPullRequestsReferences</code> from the issue, <code>closingIssuesReferences</code> from the pull request.</p>
+<p>Progress becomes derived rather than reported. For each slice under a milestone you get four honest states: closed, has a merged pull request, has an open one, has nothing at all. The last bucket is the useful one. An open slice with no pull request is either not started or not linked. Never count it as done.</p>
+<p>The same read tells you when a board card has gone stale. If a card says Ready but its slices already have merged pull requests, the work outranks the card. Say so in the output and move the card.</p>
+<hr />
+<h2 id="what-breaks-when-a-link-is-missing">What breaks when a link is missing</h2>
+<p>Every failure mode here is silent:</p>
+<ul>
+<li><strong>A pull request that closes no issue is invisible.</strong> Nothing rolls it up. Your fallback is a title sweep, and your report should admit it is one.</li>
+<li><strong>A slice filed outside the milestone reads as zero progress.</strong> The work exists and the board denies it.</li>
+<li><strong>A feature with no team has no lane.</strong> It disappears from a board grouped by team.</li>
+<li><strong>A milestone with no parent belongs to no feature.</strong> It shows as orphaned work.</li>
+</ul>
+<p>Asking people harder does not work. We measured it before building anything: 12 of 100 recent pull requests rolled up to a milestone. We measured again last week, with an inference job running: 16 of the last 100, or 15 of the 53 that a person wrote and pushed out of draft. Under a third, however you count it. That is a manual step competing with real work, and real work wins.</p>
+<p>Two things fix it. Put the nudge at the moment of work, as a comment and a non-blocking status check naming the milestone a pull request belongs to. Then run a job that infers the missing links from who has been landing work there, which code it touches, and what it says, and writes only when one candidate wins clearly. Everything it refuses to decide goes to a list a person reads.</p>
+<p>That is the whole setup. The structure is native and the progress is derived. There is still one thing a person has to do, which is write <code>Closes #123</code> — and that is exactly why the section above exists.</p></div>
+    <a class="back back-end" href="#top">&#8592; All sections</a>
+  </section>
+
+  <section class="view doc tone-blue" id="view-prompts" hidden aria-labelledby="h-prompts">
+    <a class="back" href="#top">&#8592; All sections</a>
+    <header class="doc-head">
+      <span class="eyebrow">05 &middot; Take it with you</span>
+      <h2 id="h-prompts">Build your own</h2>
+      <p class="blurb">Copy any of these into Claude. A status page from your own GitHub, your own process rules, a pitch broken into milestones, and a cycle simulator.</p>
+    </header>
+
+    <article class="prompt" id="prompt-board">
+      <div class="prompt-head">
+        <h3>Build your own cycle board</h3>
+        <button class="btn small" type="button" data-target="prompt-board-text">Copy prompt</button>
+      </div>
+      <p class="blurb">Paste into Claude Code. Assumes GitHub Projects v2, issues, sub-issues and pull requests.</p>
+      <div class="scroll"><pre id="prompt-board-text"># Prompt: build a cycle board for your team
+
+Paste all of this into Claude Code, in a repository you can commit to.
+
+## Before you start
+
+**This prompt is GitHub-only.** It reads GitHub Projects v2, issues, sub-issues and pull requests. On Jira, Linear or Asana it does not apply.
+
+You need the `gh` command line tool, signed in, with read access to your repository and board (`read:project`); issues in a parent-child hierarchy; and pull requests that close issues. If your pull requests close nothing and your issues have no parents, fix that first — there is nothing to read.
+
+Have ready: your org and repository names, the board number, and your cycle length if you run one.
+
+## The prompt
+
+&gt; I want a cycle board: one page showing every team's work on a shared calendar, generated from GitHub, that nobody has to update.
+&gt;
+&gt; **Step 1 — find out how we actually model work.** Do not assume. Read my project board through the GraphQL API and report back: the single-select fields and their options, which names the team, which holds status, and the issue types in use. Then sample recent pull requests: what share close an issue, and what share of those issues have a parent? Report the number and tell me what it means. Below about half, the board will be wrong until the linking is fixed, so build the job that infers the missing links first and the board second. That is the order we should have used.
+&gt;
+&gt; **Step 2 — agree the two units with me.** A *milestone* is the block I want drawn: one team's piece of work, a few weeks long, with a start and an end. A *slice* is the unit of progress inside it. Propose how those map onto my issue types, show me three real examples, and wait for me to confirm before writing code.
+&gt;
+&gt; **Step 3 — write a generator.** One script that reads GitHub and writes one self-contained HTML file. Rows are teams. Columns are calendar weeks. Each block is a milestone. No database, no manual entry, nothing for anyone to forget.
+&gt;
+&gt; Hold to these rules. Each was learned by getting it wrong.
+&gt;
+&gt; **A block's width is real elapsed time.** Left edge is the first pull request opened; right edge is the last one merged, or today if work continues. Never draw a block from planned dates. Where that makes a block too narrow to read, give it a one or two week minimum and say so in the hover text.
+&gt;
+&gt; **Count what is written, not only what passed QA.** A slice is delivered when its pull request is merged, or open and out of draft — one waiting on a reviewer has no build work left in it. Count QA-readiness instead and you cannot tell "not written yet" from "waiting on a reviewer": both read as zero, and a code-complete milestone shows as barely started. Break the stages out underneath — how many merged, how many awaiting review.
+&gt;
+&gt; **Never truncate a name.** If a name does not fit, the block grows. A milestone the reader cannot identify is worse than a wide one.
+&gt;
+&gt; **GitHub is the source of truth, and work beats the card.** If a card says "Ready" while its slices already carry pull requests, draw the milestone in progress and say on the block that the card is behind. If GitHub is unreachable, fail and write nothing: a board built from stale fallbacks looks live and gets trusted.
+&gt;
+&gt; **Surface a milestone that has run past its cap.** If we cap milestones at N weeks, compute elapsed weeks and mark every block over it, with the week number on the block. Elapsed time is a separate question from "is this at risk of missing the cycle", so mark it separately. A block can carry both.
+&gt;
+&gt; **Step 4 — publish it.** Run the generator each weekday morning on a schedule, commit the file, and serve it where the team already looks. Stamp the page with its generation time, and warn on it when a refresh has been missed, so a stale board says it is stale.
+
+## What good output looks like
+
+One script, one HTML file, one scheduled job. Every block clicks through to the issue it came from. Nothing on the page that a person types.
+
+The first time you show the team, somebody says "that's wrong". Good — the fix goes into GitHub, not into the board.
+</pre></div>
+    </article>
+    <article class="prompt" id="prompt-docs">
+      <div class="prompt-head">
+        <h3>Write your own process documentation</h3>
+        <button class="btn small" type="button" data-target="prompt-docs-text">Copy prompt</button>
+      </div>
+      <p class="blurb">Paste into Claude Code. It interviews you about how you actually work, then writes the rules and the reasoning.</p>
+      <div class="scroll"><pre id="prompt-docs-text"># Prompt: write your own process documentation
+
+Paste all of this into Claude Code, in the repository or folder where your team's documentation lives.
+
+## Before you start
+
+Nothing technical is needed. This one is an interview, and it takes about an hour of your attention.
+
+Bring: the rules you already follow, including the ones nobody wrote down; the rules you wrote down and then abandoned, and roughly why; and one recent piece of work that went well and one that went badly.
+
+Do not bring somebody else's framework. You are not adopting one. The output should be your rules, in your words, and it will not look like anyone else's.
+
+## The prompt
+
+&gt; Help me write down how my team actually builds things. I do not want a methodology. I want our rules, each with the reasoning behind it, in language a new joiner can act on.
+&gt;
+&gt; **Interview me first. Write nothing yet.** Ask one question at a time and wait for my answer. Cover at least:
+&gt;
+&gt; - How work arrives, and who decides what comes next.
+&gt; - How large a piece of work gets before someone breaks it down, and who breaks it down.
+&gt; - What "done" means. Push me here. Merged, code complete, running somewhere a person can use it, released to customers — these are different answers, and the one we pick decides where work actually stops.
+&gt; - What happens when something takes longer than planned. What happens in practice, not what is supposed to happen.
+&gt; - Who approves what, at which moment, and what they are really checking.
+&gt; - Which meetings exist, and what each is for.
+&gt; - What we tried and dropped, and what killed it.
+&gt;
+&gt; When I give a vague answer, say so and ask again. When two of my answers contradict each other, name the contradiction and ask which is true. When I describe an ambition rather than a practice, mark it as an ambition.
+&gt;
+&gt; **Then apply one test to every candidate rule.** A rule survives only if following it is cheaper than not following it. So for each one, ask me: what does this cost the person who has to do it, every time, forever? Not the first time.
+&gt;
+&gt; If the answer is more than a few seconds of attention, the rule will not survive contact with real work. Say so, and give me three options with a recommendation:
+&gt;
+&gt; - automate the cost away, so the rule gets followed as a by-product of doing the work
+&gt; - make the rule smaller
+&gt; - drop it
+&gt;
+&gt; The rules that die are the ones needing somebody to remember, update a field, keep a chart current, or run a meeting. They do not die because people are lazy. They die because they compete with real work, and real work wins.
+&gt;
+&gt; **Then write the document.** Open every rule with the pain, not the rule. One sentence naming the thing that goes wrong without it, specific enough that a reader recognises it from their own team. The pain is the part that travels between teams; our answer to it might not be theirs. Then give me four things:
+&gt;
+&gt; - the rule, in one sentence, specific enough to act on
+&gt; - what it costs to follow, every time — and if the honest answer is "nothing, it happens as a by-product of the work," say exactly that, because those are the rules that last
+&gt; - why we hold it: the failure it prevents, ideally one we actually lived through
+&gt; - the accepted exception, if this rule has one of its own
+&gt;
+&gt; That last part is not optional. A process with no written way to break it gets broken quietly instead, and then nobody knows what the real process is. Write exceptions as first class, not as failures.
+&gt;
+&gt; Number the rules so people can refer to them by number. Keep each under 200 words.
+&gt;
+&gt; **Give the document an honest section at the end**, listing what we have not settled: the arguments still open, the rules we wrote and have never once enforced, and the things we agreed to define and never defined. A process document containing only what worked is a sales brochure, and nobody believes it.
+&gt;
+&gt; **Finally, tell me what you are unsure about.** List where my answers were thin, and which rules you expect will not survive. I would rather publish a short document I believe than a complete one I do not.
+
+## What good output looks like
+
+Fewer rules than you expected. We ended with eleven and could defend nine of them. Every rule carries its own reason, so a person who disagrees can argue with the reasoning and propose a better rule, instead of quietly ignoring this one.
+
+At least one rule you decided not to write down, with a note saying why you dropped it.
+
+Read it again a cycle later. Any rule nobody has followed since you wrote it needs automating or deleting. That is the same test, applied to the document itself.
+</pre></div>
+    </article>
+    <article class="prompt" id="prompt-milestones">
+      <div class="prompt-head">
+        <h3>Break a pitch into milestones</h3>
+        <button class="btn small" type="button" data-target="prompt-milestones-text">Copy prompt</button>
+      </div>
+      <p class="blurb">Paste into Claude with your pitch. It proposes the smallest standalone milestones, each four weeks or less, then writes one buildable document per milestone.</p>
+      <div class="scroll"><pre id="prompt-milestones-text">Read the pitch I've attached (or the file I point you to). Then help me break this feature into milestones.
+
+## The rule
+
+A milestone is the smallest piece of this feature that can stand alone and ship. It can sit behind a feature flag, so it doesn't have to be visible to users, but it must be complete on its own.
+
+Every milestone must be conservatively achievable in four weeks or less by the team that will build it, with the work ready for QA by the end. Don't fit scope to a time budget. If a milestone looks bigger than four weeks, it isn't one milestone yet. Say so, and break it down further.
+
+## Before you start
+
+1. Read the pitch: the problem, the solution, the use cases, the risks, what's out of scope, and the QA checklist.
+2. If there's an open question that would change the shape of the work, stop and ask me about it first. Don't break down a feature that isn't shaped yet.
+3. Ask me how many developers will build it, so you size the milestones for the real team.
+
+## Propose the milestones
+
+For each milestone, write two or three plain sentences:
+
+- **After this ships:** what a user (or the system) can do that it couldn't before.
+- **Why it stands alone:** why it can ship without the milestones after it.
+- **What it waits on:** anything it depends on, named specifically.
+
+Put the milestones that resolve the biggest unknowns first. Then mark each one as:
+
+- **Must-have:** the core of the feature. The feature doesn't solve the problem without it.
+- **Nice-to-have:** the feature is still useful without it.
+
+When you need a decision from me, ask it as a real question. Explain what it means, what happens with each answer, and what you recommend. One decision per question.
+
+## After we agree
+
+Write one document per milestone that a developer could build from without opening the pitch:
+
+- **Goal:** two to four sentences on what works end to end after this ships, and what belongs to the next milestone.
+- **Use cases:** the pitch's use cases, restated for exactly what this milestone makes work.
+- **Scope:** everything in it, and where each excluded piece lands instead.
+- **Acceptance criteria:** numbered, testable statements, taken only from decisions already made. If something is still undecided, say so. Don't invent it.
+- **QA checklist:** checkboxes a tester who knows nothing about the project could follow. Each one names the starting state, the exact action, and what to check.
+- **Open questions for the developers:** each with enough context to answer cold.
+
+Write in plain sentences, with one idea per sentence. Define any term of art the first time you use it.
+
+## Remember
+
+This is a proposal for the team, not a decision. Walk the developers through it. They have the final say on the milestones and the order they build them in.
+</pre></div>
+    </article>
+    <article class="prompt" id="prompt-simulator">
+      <div class="prompt-head">
+        <h3>Build a build process simulator</h3>
+        <button class="btn small" type="button" data-target="prompt-simulator-text">Copy prompt</button>
+      </div>
+      <p class="blurb">Paste into Claude. It asks about your cycle, teams and rules, then builds a one-file timeline where you can try what-ifs.</p>
+      <div class="scroll"><pre id="prompt-simulator-text">Build me a build process simulator: a single HTML file I can open in a browser, with no server and no install. It should show how my teams' work flows through our cycles over the next six months, and let me try "what if" scenarios.
+
+## Ask me first
+
+Before you write any code, ask me for:
+
+1. **The cycle.** How many build weeks, how many cooldown weeks, and the date the next cycle starts. (Ours is four weeks of building, then one week of cooldown, and every team shares the same calendar.)
+2. **The teams.** Their names, and how many developers each one has.
+3. **The work.** For each team, the milestones in order, each with an estimate in weeks. Every milestone should be four weeks or less.
+4. **Our rules.** For example:
+   - Does a milestone pause over cooldown and resume afterwards, or must it finish before cooldown?
+   - What happens when a milestone runs long? (Ours: around week four, if less than a week is left, extend it by up to one week. If more than a week is left, stop, and make the rest a new milestone.)
+   - Does one team take support and small improvements for part of each cycle?
+   - Is there a release or QA period after a feature's last milestone?
+
+## What to build
+
+- **A timeline.** Weeks across the top, one row per team, and each milestone as a block in its team's row. Cooldown weeks are shaded and never move. Work flows around them.
+- **What-ifs.** Clicking a milestone lets me choose: finished early, extended by a week, ran long and split, or feature ready for QA. Everything after it recalculates straight away.
+- **A rulebook tab.** Our rules in plain sentences, so anyone reading the simulator knows why the blocks land where they do.
+- **A reset button**, to go back to the plan.
+
+## How it should behave
+
+- Calculate everything from the rules and the inputs. Don't hard-code positions.
+- Keep the data at the top of the file, so I can change a milestone or a date by hand.
+- Make it readable for people who weren't in the planning meeting: label every block with its team and milestone name, and show the dates.
+- Make it work on a laptop screen and on a phone.
+
+When it's done, walk me through one scenario where a milestone runs long. Show what happens to every team's work after it, so I can check the rules behave the way we agreed.
+</pre></div>
+    </article>
+    <a class="back back-end" href="#top">&#8592; All sections</a>
+  </section>
+  </div>
+</main>
+
+<script>
+(() => {
+  /* State first. Anything below that calls tally() would otherwise hit these
+     bindings in their temporal dead zone and take the whole script down. */
+  const rid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 9);
+  const SID = rid();
+  const counts = { view: {}, copy: {}, linkedin: {} };
+  const opened = new Date().toISOString();
+  let store = null, flushTimer = null;
+
+  function tally(kind, name) {
+    if (!counts[kind]) counts[kind] = {};
+    counts[kind][name] = (counts[kind][name] || 0) + 1;
+    scheduleFlush();
+  }
+  /* One document per visit, rewritten in place. One row per click would blow the
+     5,000-document cap the first time a conference room opens this at once. */
+  function scheduleFlush() {
+    if (!store || flushTimer) return;
+    flushTimer = setTimeout(() => {
+      flushTimer = null;
+      try {
+        store.doc("visits/" + SID).set({
+          openedAt: opened,
+          lastAt: new Date().toISOString(),
+          ref: document.referrer ? new URL(document.referrer).hostname : "direct",
+          counts,
+        });
+      } catch {}
+    }, 1500);
+  }
+
+  const views = [...document.querySelectorAll(".view")];
+  const navLinks = [...document.querySelectorAll("header.bar nav a")];
+
+  function show(id) {
+    const target = document.getElementById("view-" + id) || document.getElementById("view-home");
+    views.forEach((v) => { v.hidden = v !== target; });
+    navLinks.forEach((a) => a.setAttribute("aria-current", String(a.dataset.nav === id)));
+    window.scrollTo(0, 0);
+    const h = target.querySelector("h1, h2");
+    if (h) { h.setAttribute("tabindex", "-1"); h.focus({ preventScroll: true }); }
+    tally("view", id);
+  }
+  const current = () => (location.hash || "#top").slice(1) || "top";
+  addEventListener("hashchange", () => show(current()));
+  show(current());
+
+  document.querySelectorAll("[data-target]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const pre = document.getElementById(btn.dataset.target);
+      if (!pre) return;
+      try {
+        await navigator.clipboard.writeText(pre.textContent);
+        btn.textContent = "Copied";
+        setTimeout(() => { btn.textContent = "Copy prompt"; }, 2200);
+      } catch {
+        const r = document.createRange(); r.selectNodeContents(pre);
+        const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+        btn.textContent = "Selected, press Cmd+C";
+        setTimeout(() => { btn.textContent = "Copy prompt"; }, 3000);
+      }
+      tally("copy", btn.dataset.target);
+    });
+  });
+  document.getElementById("li")?.addEventListener("click", () => tally("linkedin", "contact"));
+
+  /* ------------------------------------------------------------ questions --- */
+  const form = document.getElementById("askform");
+  const msg = document.getElementById("askmsg");
+  const send = document.getElementById("asksend");
+  const faqList = document.getElementById("faqlist");
+
+  function say(text, bad) {
+    msg.textContent = text;
+    msg.classList.toggle("bad", !!bad);
+    msg.hidden = false;
+  }
+
+  form?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const q = document.getElementById("q").value.trim();
+    if (!q) return;
+    if (!store) {
+      say("I can't take questions through this page from your browser. Send it to me on LinkedIn and I'll answer it here.", true);
+      return;
+    }
+    send.disabled = true;
+    try {
+      await store.doc("questions/" + rid()).set({
+        q,
+        who: document.getElementById("who").value.trim() || "",
+        at: new Date().toISOString(),
+        answered: false,
+      });
+      form.reset();
+      say("Got it. I answer these below, usually the same day.");
+    } catch {
+      say("That didn't send. Try again, or find me on LinkedIn.", true);
+    } finally {
+      send.disabled = false;
+    }
+  });
+
+  function renderFaq(items) {
+    if (!items.length) {
+      faqList.innerHTML = '<p class="faq-empty">Nothing answered yet. Yours can be the first.</p>';
+      return;
+    }
+    faqList.innerHTML = "";
+    for (const it of items) {
+      const el = document.createElement("article");
+      el.className = "qa";
+      const h = document.createElement("h3");
+      h.textContent = it.q || "";
+      const p = document.createElement("p");
+      p.textContent = it.a || "";
+      el.append(h, p);
+      if (it.who) {
+        const w = document.createElement("span");
+        w.className = "who";
+        w.textContent = "Asked by " + it.who;
+        el.append(w);
+      }
+      faqList.append(el);
+    }
+  }
+  /* No claim about the FAQ until the store answers. */
+  faqList.innerHTML = '<p class="faq-empty">Loading\u2026</p>';
+
+  function noStore() {
+    faqList.innerHTML = '<p class="faq-empty">Answers appear here once I start posting them.</p>';
+    if (!form) return;
+    send.disabled = true;
+    send.textContent = "Unavailable here";
+    say("I can't take questions through this page from your browser. Send it to me on LinkedIn and I'll answer it here.");
+  }
+
+  (async () => {
+    try {
+      store = await window.claude?.use?.("db");
+      if (!store) { noStore(); return; }
+      scheduleFlush();
+      store.collection("faq").orderBy("at", "desc").limit(60).onSnapshot(
+        (snap) => renderFaq(snap.docs.map((d) => d.data()).filter(Boolean)),
+        () => renderFaq([]),
+      );
+    } catch { noStore(); }
+  })();
+})();
+</script>
+</body></html>
