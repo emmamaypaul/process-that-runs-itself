@@ -768,7 +768,7 @@
 <p><strong>No more “it wasn’t in the design.”</strong> Before, we’d reach QA and find that something important hadn’t been built. The answer was always that it wasn’t in the designs, even though it was in the pitch. With the pitch, the designs and the prototype checked against each other, those misses stopped.</p>
 <p><strong>Validation before building.</strong> Prototypes are now fast to make, so we walk users through a clickable prototype in a research session and check that it solves their problem before anyone builds it.</p>
 <p><strong>Help articles, written for us.</strong> With the problem, use cases and decisions in one place, help centre articles can be drafted automatically.</p>
-<p><strong>The QA checklist runs itself.</strong> The checklist in the pitch now runs automatically as part of our pipeline.</p>
+<p><strong>Next: the QA checklist runs itself.</strong> The one we’re building next: Claude runs the pitch’s QA checklist in our pipeline and reports any bug or missing use case before QA opens the feature.</p>
 <h2 id="the-status-page">The status page</h2>
 <p>Raise your hand if you’ve been in a weekly check-in meeting that you didn’t find helpful.</p>
 <p>When I was a developer, I didn’t like sprint planning or stand-ups, because they took time away from building. As a product manager I feel the same, because they take time away from thinking.</p>
@@ -944,11 +944,11 @@
 <p>Under a third, however you count it. It is moving, slowly. The change that would move it most is a nudge at the moment someone opens a pull request, and that one is written and still sitting in review, which is its own joke.</p>
 <hr />
 <h2 id="time-back-at-the-boundary-between-them">Time back at the boundary between them</h2>
-<h3 id="the-qa-checklist-compiles-into-the-pipeline">The QA checklist compiles into the pipeline</h3>
+<h3 id="next-the-qa-checklist-compiles-into-the-pipeline">Next: the QA checklist compiles into the pipeline</h3>
 <p><strong>What it replaced.</strong> A QA checklist written into the product spec, which then lived in a document nobody opened during the build.</p>
-<p><strong>What it does.</strong> The checklist from each spec becomes part of CI. The pipeline drives the real app in a browser, walks the checklist, and attempts to fix both the bugs it finds and the checklist items that fail.</p>
-<p><strong>What it cost.</strong> The specs had to get more precise, because a vague acceptance criterion produces a vague test. We did not plan that, and it is the better half of the trade.</p>
-<p><strong>Worth knowing.</strong> The checklist did not get followed more because we asked harder. It got followed because following it stopped being a separate act.</p>
+<p><strong>What it will do.</strong> This is the one we’re building next. The checklist from each spec becomes part of CI. The pipeline drives the real app in a browser, walks the checklist, and reports the bugs it finds and any use case nobody built.</p>
+<p><strong>What we expect it to cost.</strong> More precise specs, because a vague acceptance criterion produces a vague test.</p>
+<p><strong>Why.</strong> Our QA team’s time should go on judgment, not on checking that every use case was built.</p>
 <h3 id="guardrails-at-the-moment-of-work">Guardrails at the moment of work</h3>
 <p><strong>What it does, or will.</strong> When a pull request does not connect to anything, it gets a single comment saying so and a status check naming the milestone it belongs to, or “none.” The check is always green and never blocks a merge.</p>
 <p><strong>What it cost.</strong> Almost nothing to build. The restraint was the work: an earlier version would have blocked merges, which turns a helpful nudge into something people route around.</p>
