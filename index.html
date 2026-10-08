@@ -306,7 +306,7 @@
 <header class="bar">
   <div class="wide">
     <a class="brand" href="#top">Process That Runs Itself</a>
-    <nav aria-label="Sections"><a href="#talk" data-nav="talk">The talk</a><a href="#fundamentals" data-nav="fundamentals">The rules</a><a href="#automations" data-nav="automations">What we built</a><a href="#github" data-nav="github">The setup</a><a href="#prompts" data-nav="prompts">Prompts</a><a href="#questions" data-nav="questions">Questions</a></nav>
+    <nav aria-label="Sections"><a href="#slides" data-nav="slides">The slides</a><a href="#talk" data-nav="talk">The talk</a><a href="#fundamentals" data-nav="fundamentals">The rules</a><a href="#automations" data-nav="automations">What we built</a><a href="#github" data-nav="github">The setup</a><a href="#prompts" data-nav="prompts">Prompts</a><a href="#questions" data-nav="questions">Questions</a></nav>
     <span class="chip">New York &middot; Oct 2026</span>
   </div>
 </header>
@@ -603,9 +603,19 @@
 
       <div class="sec-head"><span class="kick">Read on</span><hr /></div>
       <div class="grid">
-      <a class="card tone-green" href="#talk">
+      <a class="card tone-green" href="#slides">
         <span class="card-top">
           <span class="num" aria-hidden="true">01</span>
+          <span class="card-label">The slides</span>
+          <span class="go" aria-hidden="true">&#8594;</span>
+        </span>
+        <h3>The slides, point by point</h3>
+        <p>Every slide from the talk, in order, with the points it made. Use it to refer back, or to share a single point with your team.</p>
+        <span class="card-meta">5 min read</span>
+      </a>
+      <a class="card tone-violet" href="#talk">
+        <span class="card-top">
+          <span class="num" aria-hidden="true">02</span>
           <span class="card-label">The talk</span>
           <span class="go" aria-hidden="true">&#8594;</span>
         </span>
@@ -613,9 +623,9 @@
         <p>Every point from the stage, in order, with the detail there wasn’t time for: the six steps, the four-week rule, cooldown, and setting your own boundaries.</p>
         <span class="card-meta">7 min read</span>
       </a>
-      <a class="card tone-violet" href="#fundamentals">
+      <a class="card tone-amber" href="#fundamentals">
         <span class="card-top">
-          <span class="num" aria-hidden="true">02</span>
+          <span class="num" aria-hidden="true">03</span>
           <span class="card-label">The rules</span>
           <span class="go" aria-hidden="true">&#8594;</span>
         </span>
@@ -623,9 +633,9 @@
         <p>What survived waterfall, Scrum, Kanban and Shape Up — and the reasoning, so you can reach different conclusions.</p>
         <span class="card-meta">14 min read</span>
       </a>
-      <a class="card tone-amber" href="#automations">
+      <a class="card tone-blue" href="#automations">
         <span class="card-top">
-          <span class="num" aria-hidden="true">03</span>
+          <span class="num" aria-hidden="true">04</span>
           <span class="card-label">What we built</span>
           <span class="go" aria-hidden="true">&#8594;</span>
         </span>
@@ -633,9 +643,9 @@
         <p>Every item replaced work a person did, or was meant to do and didn’t. What each cost, and where it still gets things wrong.</p>
         <span class="card-meta">8 min read</span>
       </a>
-      <a class="card tone-blue" href="#github">
+      <a class="card tone-undefined" href="#github">
         <span class="card-top">
-          <span class="num" aria-hidden="true">04</span>
+          <span class="num" aria-hidden="true">05</span>
           <span class="card-label">The setup</span>
           <span class="go" aria-hidden="true">&#8594;</span>
         </span>
@@ -703,10 +713,124 @@
 
   <div class="wide">
 
-  <section class="view doc tone-green" id="view-talk" hidden aria-labelledby="h-talk">
+  <section class="view doc tone-green" id="view-slides" hidden aria-labelledby="h-slides">
     <a class="back" href="#top">&#8592; All sections</a>
     <header class="doc-head">
-      <span class="eyebrow">01 &middot; The talk</span>
+      <span class="eyebrow">01 &middot; The slides</span>
+      <h2 id="h-slides">The slides, point by point</h2>
+      <p class="blurb">Every slide from the talk, in order, with the points it made. Use it to refer back, or to share a single point with your team.</p>
+    </header>
+    <div class="prose"><h2 id="1-rebuilding-our-product-process-around-ai">1. Rebuilding our product process around AI</h2>
+<p>Emma Lewis. Back-end developer, then technical product manager, now a director of product management. Like many of you, a woman in tech who uses Claude every day and is still figuring out how best to use it.</p>
+<h2 id="2-bangers">2. Bangers</h2>
+<p>Three ways to put AI into your production process. One is live, one is being built now, and one is next.</p>
+<h2 id="3-banger-1-live-triage-bugs-with-an-agent">3. Banger 1 (live): triage bugs with an agent</h2>
+<ol>
+<li>A support engineer adds a “draft” label to a ticket. That’s the only manual step.</li>
+<li>The agent investigates, fixes the bug, writes tests, and opens a pull request.</li>
+<li>It asks a developer to review it. A person still decides what ships.</li>
+</ol>
+<p>Since we started working this way: the support backlog is down about 40% in two months, and open production errors went from about 1,000 to about 20. Most of that was clearing out noise, not 1,000 bugs fixed.</p>
+<h2 id="4-banger-2-building-now-triage-small-ux-enhancement-requests">4. Banger 2 (building now): triage small UX enhancement requests</h2>
+<ol>
+<li>Customer success managers post customer insights in one Slack channel, in one format.</li>
+<li>When a product manager sees a small enhancement AI can handle, they react with a thumbs-up.</li>
+<li>The agent files the GitHub ticket, writes the fix and the tests, and checks it in a real browser.</li>
+<li>A developer reviews the pull request.</li>
+</ol>
+<p>Why: engineers stay focused on big feature architecture, not small fixes in the UI.</p>
+<h2 id="5-banger-3-next-make-sure-new-features-are-ready-for-qa">5. Banger 3 (next): make sure new features are ready for QA</h2>
+<p>Every pitch already has a QA checklist that covers every use case. In the CI pipeline:</p>
+<ol>
+<li>An agent QAs the feature against the checklist, in a real browser.</li>
+<li>It logs the bugs it finds and the use cases that weren’t built.</li>
+<li>It drafts pull requests for those gaps.</li>
+<li>They go back to the development team for review.</li>
+<li>Then the feature goes to the QA team, complete rather than a first draft.</li>
+</ol>
+<p>Why: the QA team’s time is precious.</p>
+<h2 id="6-automate-the-busywork">6. Automate the busywork</h2>
+<p>So you can use your brain on the work you actually want to be doing.</p>
+<h2 id="7-the-catch-22-with-ai">7. The catch-22 with AI</h2>
+<p>The tool that gives you your time back is also really good at taking it. Every prompt is a small win, so you try one more. The busywork disappears, and the space fills up with more work. The answer isn’t less AI. It’s boundaries.</p>
+<h2 id="8-before-ai-good-fast-cheap-pick-two">8. Before AI: “Good, fast, cheap. Pick two.”</h2>
+<p>The triangle is usually credited to Dr Martin Barnes, 1969. Engineers have said it since the 1960s. Developer time was finite, so this was a boundary everyone agreed on.</p>
+<h2 id="9-with-ai-all-three-are-expected">9. With AI: all three are expected</h2>
+<p>The industry now expects good, fast <em>and</em> cheap. The old boundary is gone.</p>
+<h2 id="10-now-more-than-ever-we-need-boundaries-with-ai">10. Now, more than ever, we need boundaries with AI</h2>
+<p>Built right into our product team’s process. Like a friend who builds self-care time into her calendar every week: she doesn’t wait until she has time for it.</p>
+<h2 id="11-the-old-parameters-are-gone">11. The old parameters are gone</h2>
+<p>Waterfall (1970), Scrum (1995), Kanban (2010) and Shape Up (2019) were all designed around one parameter: building software is slow and expensive. With AI, building is fast and cheap. The parameters every product process was designed around are no longer relevant.</p>
+<h2 id="12-parallel-cycles-shape-and-build">12. Parallel cycles: shape and build</h2>
+<p>Inspired by Kanban, Agile and Shape Up.</p>
+<ul>
+<li>Two tracks run at the same time. Product shapes: investigate, pitch, prototype. Developers build.</li>
+<li>Developers build in four-week cycles. No milestone is longer than one cycle.</li>
+<li>While developers build one feature, product shapes the next, then decides what to shape after that.</li>
+<li>Every cycle ends with a one-week cooldown.</li>
+</ul>
+<h2 id="13-we-are-not-robots">13. We are not robots</h2>
+<p>Every four weeks of building earns a week to breathe.</p>
+<ul>
+<li>Cooldown is one week with no scheduled project work, and everyone takes it at the same time.</li>
+<li>Builders choose their own adventure: fix bugs, explore ideas, learn, make small improvements.</li>
+<li>Leaders decide what’s next. Product managers identify the next most important problem to solve.</li>
+<li>Shape Up runs six weeks plus two of cooldown. We run four plus one.</li>
+</ul>
+<p>Cooldown comes from <em>Shape Up</em> by Ryan Singer, free to read at <a href="https://basecamp.com/shapeup" rel="noopener">basecamp.com/shapeup</a>.</p>
+<h2 id="14-we-are-human">14. We are human</h2>
+<p>Our brains need downtime to reset mentally, physically and emotionally after completing a big project.</p>
+<h2 id="15-measure-twice-cut-once">15. Measure twice, cut once</h2>
+<p>Feature information alignment: before anyone builds, make sure everything you know about the feature lines up.</p>
+<h2 id="16-use-ai-to-reduce-any-and-all-discrepancies">16. Use AI to reduce any and all discrepancies</h2>
+<p>Between the pitch (aka the PRD), the design files, and the high-fidelity prototype.</p>
+<ul>
+<li>Claude cross-checks all three and flags every mismatch. For example, a use case in the pitch that isn’t in the designs, or a state in the designs that isn’t in the prototype.</li>
+<li>Fix the gaps before anyone builds.</li>
+<li>No more reaching QA and hearing “it wasn’t in the designs.”</li>
+</ul>
+<h2 id="17-github-one-place-claude-can-read">17. GitHub: one place Claude can read</h2>
+<p>Everything for a feature lives in GitHub, next to the code: user research, feature ideation meeting transcripts and artifacts, market research, the pitch, every decision and why, the designs and the prototype. See <strong>The setup</strong> for how it’s organised.</p>
+<h2 id="18-set-your-developers-up-for-success">18. Set your developers up for success</h2>
+<p>With all this context consolidated and artifacts aligned, developers start the cycle with everything they need. They have the final say on the milestones and the order they build them in.</p>
+<h2 id="19-raise-your-hand">19. Raise your hand</h2>
+<p>Have you ever been in a weekly check-in meeting that you didn’t find helpful or effective?</p>
+<h2 id="20-an-agent-that-provides-build-status">20. An agent that provides build status</h2>
+<ul>
+<li>It reads everything from GitHub every day: pitches, milestones, pull requests.</li>
+<li>It updates itself. Nobody maintains it.</li>
+<li>Cooldown weeks are empty. No build work.</li>
+<li>When something runs past the four-week line, the page shows it. That starts the honest conversation: pivot, cut scope, or extend.</li>
+</ul>
+<p>The prompt to build your own is in <strong>Prompts</strong>.</p>
+<h2 id="21-automate-the-busywork-but-don-t-forget-the-catch-22">21. Automate the busywork, but don’t forget the catch-22</h2>
+<ol>
+<li><strong>Automate the busywork.</strong> Use your brain on the work you want to be doing.</li>
+<li><strong>Remember the catch-22.</strong> The tool that gives time back is good at taking it.</li>
+<li><strong>Build boundaries into the process.</strong> A four-week cap and a cooldown week.</li>
+</ol>
+<h2 id="22-leaders-need-boundaries-too">22. Leaders need boundaries too</h2>
+<p>Not only does our process need boundaries. As leaders, we need boundaries too.</p>
+<h2 id="23-my-new-rule">23. My new rule</h2>
+<p>When I’m asked to add something to my plate, I ask: <strong>“When do you need this by?”</strong></p>
+<p>If I get that pit-in-my-stomach feeling that it will spread me too thin, I push back:</p>
+<ul>
+<li>“No, I don’t have bandwidth.”</li>
+<li>“I can do it in two weeks, when I have more time.”</li>
+<li>“If this is a priority, would you like me to deprioritize X?”</li>
+</ul>
+<p><strong>Saying no makes your yes worth trusting.</strong></p>
+<h2 id="24-the-truth-as-a-leader">24. The truth as a leader</h2>
+<p>AI hasn’t stopped me being pulled in a million directions. Set boundaries: for your team, and for yourself.</p>
+<h2 id="25-we-are-not-robots">25. We are not robots</h2>
+<p>We work with AI agents, but we are not robots. We are human, and we can’t lose sight of that.</p>
+<p>Thank you.</p></div>
+    <a class="back back-end" href="#top">&#8592; All sections</a>
+  </section>
+  <section class="view doc tone-violet" id="view-talk" hidden aria-labelledby="h-talk">
+    <a class="back" href="#top">&#8592; All sections</a>
+    <header class="doc-head">
+      <span class="eyebrow">02 &middot; The talk</span>
       <h2 id="h-talk">The talk, step by step</h2>
       <p class="blurb">Every point from the stage, in order, with the detail there wasn’t time for: the six steps, the four-week rule, cooldown, and setting your own boundaries.</p>
     </header>
@@ -797,10 +921,10 @@
 <p>Setting boundaries is the only way I’ve avoided burnout as I’ve grown into bigger leadership roles. We built boundaries into our process, because we are not robots. Neither are you. Set yours.</p></div>
     <a class="back back-end" href="#top">&#8592; All sections</a>
   </section>
-  <section class="view doc tone-violet" id="view-fundamentals" hidden aria-labelledby="h-fundamentals">
+  <section class="view doc tone-amber" id="view-fundamentals" hidden aria-labelledby="h-fundamentals">
     <a class="back" href="#top">&#8592; All sections</a>
     <header class="doc-head">
-      <span class="eyebrow">02 &middot; The rules</span>
+      <span class="eyebrow">03 &middot; The rules</span>
       <h2 id="h-fundamentals">Process fundamentals, after trying all of them</h2>
       <p class="blurb">What survived waterfall, Scrum, Kanban and Shape Up — and the reasoning, so you can reach different conclusions.</p>
     </header>
@@ -905,10 +1029,10 @@
 <p>Then come back to the question at the top. For every rule you already have, ask what it costs the person who has to follow it, every single time. The ones that cost real effort are the ones quietly dying, and those are your candidates for automating the cost away.</p></div>
     <a class="back back-end" href="#top">&#8592; All sections</a>
   </section>
-  <section class="view doc tone-amber" id="view-automations" hidden aria-labelledby="h-automations">
+  <section class="view doc tone-blue" id="view-automations" hidden aria-labelledby="h-automations">
     <a class="back" href="#top">&#8592; All sections</a>
     <header class="doc-head">
-      <span class="eyebrow">03 &middot; What we built</span>
+      <span class="eyebrow">04 &middot; What we built</span>
       <h2 id="h-automations">What we automated, and what it bought us</h2>
       <p class="blurb">Every item replaced work a person did, or was meant to do and didn’t. What each cost, and where it still gets things wrong.</p>
     </header>
@@ -973,10 +1097,10 @@
 <p><strong>The tooling doesn’t change scope on its own.</strong> A faster team shows up in throughput first. We were deliberate about that, because the temptation to treat AI as a reason to commit to more is strong, and it is how you end up back where you started, with a process nobody follows.</p></div>
     <a class="back back-end" href="#top">&#8592; All sections</a>
   </section>
-  <section class="view doc tone-blue" id="view-github" hidden aria-labelledby="h-github">
+  <section class="view doc tone-undefined" id="view-github" hidden aria-labelledby="h-github">
     <a class="back" href="#top">&#8592; All sections</a>
     <header class="doc-head">
-      <span class="eyebrow">04 &middot; The setup</span>
+      <span class="eyebrow">05 &middot; The setup</span>
       <h2 id="h-github">Setting GitHub up so nobody maintains a tracker</h2>
       <p class="blurb">The issue hierarchy, the board fields, and how pull requests connect back so progress can be derived instead of reported.</p>
     </header>
